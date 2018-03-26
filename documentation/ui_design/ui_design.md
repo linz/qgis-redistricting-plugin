@@ -92,7 +92,7 @@ Clicking the Interactive Redistricting Tool button will show a menu asking wheth
 
 ![Menu for Interactive Redistricting Tool](images/interactive_menu.png)
 
-When the tool is activated, the mouse cursor will change to a snapping tool, which snaps to current district boundaries for the selected electorate type. The cursor will only snap to boundaries between multiple electorates (so single electorate boundaries, for example coastal boundaries, are not clickable).
+When the tool is activated, the mouse cursor will change to a snapping tool, which snaps to current electorate boundaries for the selected electorate type. The cursor will only snap to boundaries between multiple electorates (so single electorate boundaries, for example coastal boundaries, are not clickable).
 
 ![Cursor snaps to current electorate boundaries](images/snapping.png)
 
@@ -104,23 +104,23 @@ When a electorate or electorate boundary is clicked, an overlay appears over the
 
 ![Estimated count overlay](images/estimated_count_overlay.png)
 
-As the mouse is moved over adjoining meshblocks, these meshblocks are temporarily re-assigned to a new meshblock. The logic used to assign the new meshblock is:
+As the mouse is moved over adjoining meshblocks, these meshblocks are temporarily re-assigned to a new electorate. The logic used to assign the new meshblock is:
 
-- If the operation was triggered by clicking a single district, then the meshblocks will be assigned to the clicked district:
+- If the operation was triggered by clicking a single electorate, then the meshblocks will be assigned to the clicked electorate:
 
 ![Initial click inside district](images/over_district.png)
 
-- If the operation was triggered by clicking a border between two districts, then the meshblocks will be assigned based on the direction of the cursor movement:
+- If the operation was triggered by clicking a border between two electorates, then the meshblocks will be assigned based on the direction of the cursor movement:
 
 ![Moving cursor up](images/district_border1.png)
 
 ![Moving cursor down](images/district_border2.png)
 
-As the cursor is moved over meshblocks and they are temporarily re-assigned, the map overlay with estimated population counts is immediately updated, showing the new estimated populations of the affected districts (refs B8).
+As the cursor is moved over meshblocks and they are temporarily re-assigned, the map overlay with estimated population counts is immediately updated, showing the new estimated populations of the affected electorates (refs B8).
 
-The tool operates in the standard "click-click" mode utilised by map tools within QGIS 3.0, where the first left mouse click starts the editing operation for the tool, and a second left-mouse click is required to "lock in" the changes. Clicking the right mouse button, or pressing the ESC key, cancels the operation without making any changes. A left-click will 'accept' this change (pushing the new district assignments into the layer edit buffer).
+The tool operates in the standard "click-click" mode utilised by map tools within QGIS 3.0, where the first left mouse click starts the editing operation for the tool, and a second left-mouse click is required to "lock in" the changes. Clicking the right mouse button, or pressing the ESC key, cancels the operation without making any changes. A left-click will 'accept' this change (pushing the new electorate assignments into the layer edit buffer).
 
-If any of the affected districts had population counts and projected populations obtained from Statistics NZ stored within the local redistricting database, these counts will be cleared and only the estimated offline populations will be available for these districts until an updated population count is requested (see [Interaction with Statistics NZ](#interaction-with-statistics-nz)).
+If any of the affected electorates had population counts and projected populations obtained from Statistics NZ stored within the local redistricting database, these counts will be cleared and only the estimated offline populations will be available for these districts until an updated population count is requested (see [Interaction with Statistics NZ](#interaction-with-statistics-nz)).
 
 All user redistricting operations are automatically logged (see [View Log](#view-log), refs B12). 
 
@@ -138,9 +138,9 @@ The user is then given a selection of available electorate districts to reassign
 
 ![Select electorate dialog](images/select_electorate.png)
 
-After accepting a new district, the new district assignment will be pushed into the layer's edit buffer. The changes can be undone and redone until they are committed to the layer permanently.
+After accepting a new electorate, the new electorate assignment will be pushed into the layer's edit buffer. The changes can be undone and redone until they are committed to the layer permanently.
 
-If any of the affected districts had population counts and projected populations obtained from Statistics NZ stored within the local redistricting database, these counts will be cleared and only the estimated offline populations will be available for these districts until an updated population count is requested (see [Interaction with Statistics NZ](#interaction-with-statistics-nz)).
+If any of the affected electorates had population counts and projected populations obtained from Statistics NZ stored within the local redistricting database, these counts will be cleared and only the estimated offline populations will be available for these districts until an updated population count is requested (see [Interaction with Statistics NZ](#interaction-with-statistics-nz)).
 
 All user redistricting operations are automatically logged (see [View Log](#view-log), refs B12). 
 
@@ -150,7 +150,7 @@ The Electorate Statistics Tool is an interactive map tool available via the Redi
 
 ![Electorate Statistics Tool](images/electorate_statistics_tool.png)
 
-When activated, the tool allows the user to click within a district or meshblock within the map. After a click occurs, the statistics for the clicked electorate districts are shown within the Redistricting Dock. More details about the dock functions and display are included in the [Redistricting Dock](#redistricting-dock-1) section.
+When activated, the tool allows the user to click within a electorate or meshblock within the map. After a click occurs, the statistics for the clicked electorate districts are shown within the Redistricting Dock. More details about the dock functions and display are included in the [Redistricting Dock](#redistricting-dock-1) section.
 
 ## Map Themes Switcher (B5, F5)
 
