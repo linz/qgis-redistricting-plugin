@@ -90,7 +90,7 @@ The Interactive Redistricting Tool allows for instant feedback about the changes
 
 The tool is ONLY active when the meshblock layer is in edit mode, and changes made by the tool are pushed to into the undo buffer. All operations can be undone and redone up until the changes are committed to the layer (refs F11).
 
-The Interactive Redistricting Tool operates on the electorate type selected using the [Task Switcher](#task_switcher) control - e.g. if the current task is set to Maori electorates, then the redistricting tool will alter the meshblocks assigned Maori electorate.
+The Interactive Redistricting Tool operates on the electorate type selected using the [Task Switcher](#task_switcher) control - e.g. if the current task is set to Māori electorates, then the redistricting tool will alter the meshblocks assigned Māori electorate.
 
 When the tool is activated, the mouse cursor will change to a snapping tool, which snaps to current electorate boundaries for the selected electorate type. The cursor will only snap to boundaries between multiple electorates (so single electorate boundaries, for example coastal boundaries, are not clickable).
 
@@ -130,7 +130,7 @@ The Redistrict Selected Meshblock tool is a non-interactive redistricting tool, 
 
 The Redistrict Selected Meshblocks tool will only be enabled when a selection exists in the meshblock layer. Additionally, the tool is ONLY active when the meshblock layer is in edit mode, and changes made by the tool are pushed to into the undo buffer. All operations can be undone and redone up until the changes are committed to the layer (refs F11).
 
-The  Redistrict Selected Meshblocks tool operates on the electorate type selected using the [Task Switcher](#task_switcher) control - e.g. if the current task is set to Maori electorates, then the redistricting tool will alter the meshblocks assigned Maori electorate.
+The  Redistrict Selected Meshblocks tool operates on the electorate type selected using the [Task Switcher](#task_switcher) control - e.g. if the current task is set to Māori electorates, then the redistricting tool will alter the meshblocks assigned Māori electorate.
 
 After clicking the action, the user is then given a selection of available electorate districts to reassign the selection to. The dialog lists all available electorates, and includes a search widget for filtering the list. Electorates with NO assigned meshblocks appear at the top of the list for quick access. A list of the most recently used electorates is shown at the top of the dialog for quick access, and the dialog defaults to selecting the **most recently** used electorate.
 
@@ -195,7 +195,7 @@ The final action available in the Redistricting Toolbar is the Task Switcher act
 
 ![Task Switcher](images/task_switcher.png)
 
-The `Task Switcher` allows the user to select which electorate type (General North Island, General South Island, or Maori) they are currently working with. Clicking the action shows a drop-down menu giving a choice of electorate types:
+The `Task Switcher` allows the user to select which electorate type (General North Island, General South Island, or Māori) they are currently working with. Clicking the action shows a drop-down menu giving a choice of electorate types:
 
 ![Task Switcher Menu](images/task_switcher_menu.png)
 
@@ -370,14 +370,14 @@ A new table view is opened showing just the meshblocks which have been changed s
 
 The `Export Districts` action will allow users to create a dissolved copy of the current electorate districts (refs F6, F15). Selecting this action will trigger a file save dialog prompting the user to select a file location for the exported districts.
 
-Upon acceptance, the application will spatially dissolve both the General Electorates and Maori Electorates. A geopackage database will be created containing spatial tables of these electorates, and a separate table detailing districts assigned to each meshblock. Additionally the user event log will also be included as a non-spatial table (see [View Log](#view-log)).
+Upon acceptance, the application will spatially dissolve both the General Electorates and Māori Electorates. A geopackage database will be created containing spatial tables of these electorates, and a separate table detailing districts assigned to each meshblock. Additionally the user event log will also be included as a non-spatial table (see [View Log](#view-log)).
 
 The mesh block to electorate assignments will be exported in a table of the format:
 
-Meshblock | NI General | SI General | Maori
------------------------------------------------------------
-MB1 | electorate 1 |  | electorate 2
-MB2 | electorate 3 |  | electorate 5
+| Meshblock | NI General | SI General | Māori
+|-----------|------------|------------|-------
+|MB1        | electorate 1 |         | electorate 2
+|MB2        | electorate 3 |         | electorate 5
 
 The export process will occur in a background task to allow users to continue using the application while the export is performed.
 

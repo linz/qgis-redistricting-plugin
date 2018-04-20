@@ -16,7 +16,7 @@ Contains mesh block boundaries and various statistics and properties of these me
 | geometry      | geometry(MultiPolygon, 2193)  | Mesh Block boundary |  | Spatial | 
 | offline_pop_ni_general | int | Offline North Island general population | | | Offline general population of mesh block
 | offline_pop_si_general | int | Offline South Island general population | | | Offline general population of mesh block
-| offline_pop_maori | int | Offline Maori population | | | Offline Maori population of mesh block	
+| offline_pop_maori | int | Offline Māori population | | | Offline Māori population of mesh block	
 | offshore | boolean |  | T/F | | True if mesh block is an offshore mesh block
 
 ## scenarios
@@ -43,17 +43,17 @@ Links meshblocks to assigned electorates. Assignment is based on scenarios, wher
 | meshblock_id | string(20) | Mesh Block code |  | Y | Linked meshblock ID code
 | ni_general_code | int | North Island General Electorate Code | | | Currently assigned General Electorate to meshblock for scenario
 | si_general_code | int | South Island General Electorate Code | | | Currently assigned General Electorate to meshblock for scenario
-| maori_code | int | Maori Electorate Code | | | Currently assigned Maori Electorate to meshblock for scenario
+| maori_code | int | Māori Electorate Code | | | Currently assigned Māori Electorate to meshblock for scenario
 
 ## electorates
 
-Contains available General and Maori electorates. This is a spatial table, containing MultiPolygon features in EPSG:2193. Geometries and populations are built from dissolved mesh block boundaries and are updated when the scenario changes or affected meshblocks are redistricted.
+Contains available General and Māori electorates. This is a spatial table, containing MultiPolygon features in EPSG:2193. Geometries and populations are built from dissolved mesh block boundaries and are updated when the scenario changes or affected meshblocks are redistricted.
 
 | Column name   | Type          |  Descriptive name | Valid Values | Index | Description
 | ------------- | ------------- | ----------------- | ------------ | ----- | ----------
 | electorate_id     | int    | Electorate ID   |              | PK    | Unique electorate ID
 | geometry      | geometry(MultiPolygon, 2193)  | Electorate boundary |  | Spatial | Current dissolved boundary of assigned mesh blocks
-| type | string(2) | Electorate type | GN/GS/M  | Y | Contains 'GN' for General North Island electorates, 'GS' for General South Island, or 'M' for Maori electorates
+| type | string(2) | Electorate type | GN/GS/M  | Y | Contains 'GN' for General North Island electorates, 'GS' for General South Island, or 'M' for Māori electorates
 | code | string(4) | Electorate code |  | | Code for electorate, e.g. '0302'
 | name | string(50) | Electorate name |  | | Name of electorate
 | scenario | string(20) | Current scenario | | | Contains the current scenario from which the cached populations and boundary were calculated
@@ -70,7 +70,7 @@ Contains population quotas for the different electorate types. Used to retrieve 
 
 | Column name   | Type          |  Descriptive name | Valid Values | Index | Description
 | ------------- | ------------- | ----------------- | ------------ | ----- | ----------
-| type | string(2) | Electorate type | GN/GS/M  | PK | Contains 'GN' for General North Island electorates, 'GS' for General South Island, or 'M' for Maori electorates
+| type | string(2) | Electorate type | GN/GS/M  | PK | Contains 'GN' for General North Island electorates, 'GS' for General South Island, or 'M' for Māori electorates
 | quota | int | Population quota | | | Target population for electorates of this type
 
 
@@ -97,7 +97,7 @@ Contains a log of the history of user interactions with the meshblock and electo
 | meshblock_version | string(50) |  | | | Meshblock version ID which the change was based on
 | scenario | string(20) |  | | | Scenario in which the change was made
 | meshblock_id     | string(20)    | Mesh Block Code   |              |     | ID of mesh block changed, e.g. MB 0847800
-| type | string(1) | Electorate type | G/M  |   | Contains 'G' for General electorate changes, 'M' for Maori electorate changes
+| type | string(1) | Electorate type | G/M  |   | Contains 'G' for General electorate changes, 'M' for Māori electorate changes
 | from | int| 'From' electorate |   |   | Electorate assigned prior to the change
 | to | int| 'To' electorate |   |   | Electorate assigned after the change
 

@@ -66,7 +66,7 @@ def validate():
     table.setHorizontalHeaderLabels(['','Electorate','Error'])
     table.setItem(0,1,QTableWidgetItem('General Electorate 1'))
     table.setItem(0,2,QTableWidgetItem('Electorate is non-contiguous'))
-    table.setItem(1,1,QTableWidgetItem('Maori Electorate 4'))
+    table.setItem(1,1,QTableWidgetItem('Māori Electorate 4'))
     table.setItem(1,2,QTableWidgetItem('Exceeds population tolerance'))
     
     def create_zoom_button():
@@ -96,10 +96,10 @@ class CreateElectorateDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        self.setWindowTitle('Create New Maori Electorate')
+        self.setWindowTitle('Create New Māori Electorate')
         
         l = QVBoxLayout()
-        label = QLabel('Enter name for new Maori electorate:')
+        label = QLabel('Enter name for new Māori electorate:')
         l.addWidget(label)
         
         name = QLineEdit()
@@ -116,7 +116,7 @@ class CreateElectorateDialog(QDialog):
         
 def create_electorate():
     dlg = CreateElectorateDialog(iface.mainWindow())
-    dlg.setWindowTitle('Create New Maori Electorate')
+    dlg.setWindowTitle('Create New Māori Electorate')
     dlg.show()
     
     

@@ -92,7 +92,7 @@ switch_ni_general_electorate_action = QAction('NI General Electorate')
 switch_menu.addAction(switch_ni_general_electorate_action)
 switch_si_general_electorate_action = QAction('SI General Electorate')
 switch_menu.addAction(switch_si_general_electorate_action)
-switch_maori_electorate_action = QAction('Maori Electorate')
+switch_maori_electorate_action = QAction('Māori Electorate')
 switch_menu.addAction(switch_maori_electorate_action)
 
 switch_tool_button.setMenu(switch_menu)
