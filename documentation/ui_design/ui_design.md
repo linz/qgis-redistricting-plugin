@@ -47,7 +47,7 @@ This document details the UI Design for the LINZ Redistricting QGIS Plugin.
 
 ## Document Version
 
-- Current: 3.0.0 (2018-04-17)
+- Current: 3.0.1 (2018-04-20)
 
 # Links
 
