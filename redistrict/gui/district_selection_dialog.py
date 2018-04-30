@@ -133,6 +133,10 @@ class DistrictSelectionDialog(QDialog):
             self.recent_list_item_selected)
         self.list.itemSelectionChanged.connect(
             self.list_item_selected)
+        self.recent_list.itemDoubleClicked.connect(
+            self.accept)
+        self.list.itemDoubleClicked.connect(
+            self.accept)
 
         # select most recently used district by default
         if self.recent_list.count() > 0:
