@@ -64,6 +64,41 @@ class RedistrictHandlerTest(unittest.TestCase):
         self.assertTrue(handler.assign_district([f4.id(), f2.id()], 'yyyy'))
         self.assertEqual([f['fld2'] for f in layer.getFeatures()], ['xxxx', 'yyyy', 'xxxx', 'yyyy', 'xxxx'])
 
+    def testBatched(self):
+        """
+        Test batched operations
+        """
+        layer = QgsVectorLayer(
+            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string",
+            "source", "memory")
+        f = QgsFeature()
+        f.setAttributes(["test4", "xtest1"])
+        f2 = QgsFeature()
+        f2.setAttributes(["test2", "xtest3"])
+        f3 = QgsFeature()
+        f3.setAttributes(["test3", "xtest3"])
+        f4 = QgsFeature()
+        f4.setAttributes(["test1", NULL])
+        f5 = QgsFeature()
+        f5.setAttributes(["test2", "xtest2"])
+        success, [f, f2, f3, f4, f5] = layer.dataProvider().addFeatures([f, f2, f3, f4, f5])
+        self.assertTrue(success)
+
+        handler = RedistrictHandler(target_layer=layer, target_field='fld1')
+        self.assertTrue(layer.startEditing())
+        handler.begin_edit_group('test')
+        self.assertTrue(handler.assign_district([f.id(), f3.id()], 'aaa'))
+        self.assertTrue(handler.assign_district([f5.id()], 'aaa'))
+        handler.end_edit_group()
+        self.assertEqual(layer.undoStack().count(), 1)
+        self.assertEqual([f['fld1'] for f in layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
+        handler.begin_edit_group('test2')
+        self.assertTrue(handler.assign_district([f2.id()], 'aaa'))
+        self.assertTrue(handler.assign_district([f4.id()], 'aaa'))
+        handler.discard_edit_group()
+        self.assertEqual(layer.undoStack().count(), 2)  # should be 1, waiting on upstream fix
+        self.assertEqual([f['fld1'] for f in layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
+
 
 if __name__ == "__main__":
     suite = unittest.makeSuite(RedistrictHandlerTest)

@@ -152,12 +152,15 @@ class LinzRedistrict:
             return
 
         handler = self.get_handler()
+        handler.begin_edit_group(
+            QCoreApplication.translate('LinzRedistrict', 'Redistrict to {}').format(str(dlg.selected_district)))
         if handler.assign_district(self.meshblock_layer.selectedFeatureIds(), dlg.selected_district):
             self.iface.messageBar().pushMessage(
                 self.tr('Redistricted selected meshblocks to {}').format(dlg.selected_district), level=Qgis.Success)
         else:
             self.iface.messageBar().pushMessage(
                 self.tr('Could not redistricted selected meshblocks'), level=Qgis.Critical)
+        handler.end_edit_group()
 
     def interactive_redistrict(self):
         """

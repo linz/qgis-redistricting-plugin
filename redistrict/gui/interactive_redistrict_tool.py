@@ -200,7 +200,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
                 if self.current_district and old_district and self.current_district != old_district:
                     if not self.modified:
                         # first modified district - push edit command
-                        self.handler.target_layer.beginEditCommand(
+                        self.handler.begin_edit_group(
                             QCoreApplication.translate('LinzRedistrict', 'Redistrict to {}').format(
                                 str(self.current_district)))
 
@@ -226,7 +226,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
         """
         if self.is_active:
             if self.modified:
-                self.handler.target_layer.destroyEditCommand()
+                self.handler.discard_edit_group()
             self.finalize_operation()
 
     def finalize_operation(self):
@@ -250,7 +250,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
 
         if self.is_active:
             if self.modified:
-                self.handler.target_layer.endEditCommand()
+                self.handler.end_edit_group()
                 self.report_success()
             self.finalize_operation()
         elif event.button() == Qt.LeftButton:

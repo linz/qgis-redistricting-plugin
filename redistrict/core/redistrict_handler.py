@@ -13,8 +13,6 @@ __copyright__ = 'Copyright 2018, The QGIS Project'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication
-
 
 class RedistrictHandler():
     """
@@ -26,6 +24,27 @@ class RedistrictHandler():
     def __init__(self, target_layer, target_field):
         self.target_layer = target_layer
         self.target_field = target_field
+        self.pending_changes = []
+
+    def begin_edit_group(self, message):
+        """
+        Begins a batch redistricting edit operation
+        :param message: user-visible string describing changes
+        """
+        self.target_layer.beginEditCommand(message)
+
+    def end_edit_group(self):
+        """
+        Ends a batch redistricting edit operation
+        """
+        self.target_layer.endEditCommand()
+
+    def discard_edit_group(self):
+        """
+        Ends a batch redistricting edit operation,
+        discarding the changes
+        """
+        self.target_layer.destroyEditCommand()
 
     def assign_district(self, target_ids, new_district):
         """
@@ -37,14 +56,11 @@ class RedistrictHandler():
         if not self.target_layer.isEditable():
             return False
 
-        self.target_layer.beginEditCommand(
-            QCoreApplication.translate('LinzRedistrict', 'Redistrict to {}').format(str(new_district)))
         field_index = self.target_layer.fields().lookupField(self.target_field)
         success = True
         for feature_id in target_ids:
             if not self.target_layer.changeAttributeValue(feature_id, field_index, new_district):
                 success = False
-        self.target_layer.endEditCommand()
 
         self.target_layer.triggerRepaint()
         return success
