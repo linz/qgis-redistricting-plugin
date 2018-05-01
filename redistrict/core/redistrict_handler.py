@@ -45,4 +45,6 @@ class RedistrictHandler():
             if not self.target_layer.changeAttributeValue(feature_id, field_index, new_district):
                 success = False
         self.target_layer.endEditCommand()
+
+        self.target_layer.triggerRepaint()
         return success

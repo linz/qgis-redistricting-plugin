@@ -165,6 +165,5 @@ class LinzRedistrict:
         """
 
         self.tool = InteractiveRedistrictingTool(self.iface.mapCanvas(), handler=self.get_handler(),
-                                                 target_layer=self.meshblock_layer,
                                                  decorator_factory=CentroidDecoratorFactory(self.electorate_layer))
         self.iface.mapCanvas().setMapTool(self.tool)

@@ -93,18 +93,16 @@ class InteractiveRedistrictingTool(QgsMapTool):
     A map tool for interactive redistricting operations
     """
 
-    def __init__(self, canvas, handler, target_layer, decorator_factory=None):
+    def __init__(self, canvas, handler, decorator_factory=None):
         """
         Constructor for map tool
         :param canvas: linked map canvas
         :param handler: redistricting handler object
-        :param target_layer: target layer for redistricting
         :param decorator_factory: optional factory for creating map decorations
         during the redistricting operation (e.g. population displays)
         """
         super().__init__(canvas)
         self.handler = handler
-        self.target_layer = target_layer
         self.decorator_factory = decorator_factory
 
         self.snap_indicator = QgsSnapIndicator(self.canvas())
@@ -127,7 +125,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
         tolerance = QgsTolerance.vertexSearchRadius(self.canvas().mapSettings())
 
         # collect matching edges
-        locator = self.canvas().snappingUtils().locatorForLayer(self.target_layer)
+        locator = self.canvas().snappingUtils().locatorForLayer(self.handler.target_layer)
         match_filter = UniqueFeatureEdgeMatchCollectingFilter(tolerance)
         locator.nearestEdge(point, tolerance, match_filter)
         return match_filter.get_matches()
@@ -138,7 +136,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
         the cursor
         :param point: map point to snap from
         """
-        locator = self.canvas().snappingUtils().locatorForLayer(self.target_layer)
+        locator = self.canvas().snappingUtils().locatorForLayer(self.handler.target_layer)
         tolerance = QgsTolerance.vertexSearchRadius(self.canvas().mapSettings())
         match = locator.nearestArea(point, tolerance)
         return match
@@ -160,7 +158,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
         :return: list of target features
         """
         feature_ids = [match.featureId() for match in matches]
-        return self.target_layer.getFeatures(QgsFeatureRequest().setFilterFids(feature_ids))
+        return self.handler.target_layer.getFeatures(QgsFeatureRequest().setFilterFids(feature_ids))
 
     def matches_are_valid_for_boundary(self, matches):
         """
@@ -208,7 +206,6 @@ class InteractiveRedistrictingTool(QgsMapTool):
 
                     self.modified.add(target.id())
                     self.handler.assign_district([target.id()], self.current_district)
-                    self.target_layer.triggerRepaint()
 
     def report_success(self):
         """

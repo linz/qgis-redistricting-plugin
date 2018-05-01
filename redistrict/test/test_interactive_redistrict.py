@@ -74,7 +74,7 @@ class InteractiveRedistrictTest(unittest.TestCase):
         canvas.show()
 
         handler = RedistrictHandler(layer, 'fldtxt')
-        tool = InteractiveRedistrictingTool(canvas, handler, layer)
+        tool = InteractiveRedistrictingTool(canvas, handler)
         # point inside a feature
         self.assertFalse(tool.get_district_boundary_matches(QgsPointXY(10, 30)))
         self.assertFalse([f for f in tool.get_target_features_from_matches([])])
@@ -134,7 +134,7 @@ class InteractiveRedistrictTest(unittest.TestCase):
         canvas.show()
 
         handler = RedistrictHandler(layer, 'fldtxt')
-        tool = InteractiveRedistrictingTool(canvas, handler, layer)
+        tool = InteractiveRedistrictingTool(canvas, handler)
         # point outside a feature
         match = tool.get_district_area_match(QgsPointXY(20, 30))
         self.assertFalse(match.isValid())
@@ -182,7 +182,7 @@ class InteractiveRedistrictTest(unittest.TestCase):
 
         handler = RedistrictHandler(layer, 'fldtxt')
         factory = DecoratorFactory()
-        tool = InteractiveRedistrictingTool(canvas, handler, layer, factory)
+        tool = InteractiveRedistrictingTool(canvas, handler, factory)
 
         # mouse over a feature's interior
         point = canvas.mapSettings().mapToPixel().transform(20, 33)
