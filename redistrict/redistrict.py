@@ -20,7 +20,7 @@ from qgis.core import (QgsProject,
                        Qgis)
 from .linz.linz_district_registry import (
     LinzElectoralDistrictRegistry)
-from .core.redistrict_handler import RedistrictHandler
+from .linz.linz_redistrict_handler import LinzRedistrictHandler
 from .gui.district_selection_dialog import (
     DistrictPicker)
 from .gui.interactive_redistrict_tool import InteractiveRedistrictingTool
@@ -130,8 +130,9 @@ class LinzRedistrict:
         """
         Returns the current redistricting handler
         """
-        return RedistrictHandler(target_layer=self.meshblock_layer,
-                                 target_field='GeneralElectoralDistrictName_2007')
+        return LinzRedistrictHandler(meshblock_layer=self.meshblock_layer,
+                                     target_field='GeneralElectoralDistrictName_2007',
+                                     electorate_layer=self.electorate_layer)
 
     def redistrict_selected(self):
         """
