@@ -132,7 +132,8 @@ class LinzRedistrict:
         """
         return LinzRedistrictHandler(meshblock_layer=self.meshblock_layer,
                                      target_field='GeneralElectoralDistrictName_2007',
-                                     electorate_layer=self.electorate_layer)
+                                     electorate_layer=self.electorate_layer,
+                                     electorate_layer_field='GeneralElectoralDistrictName_2007')
 
     def redistrict_selected(self):
         """

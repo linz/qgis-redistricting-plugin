@@ -26,7 +26,7 @@ from qgis.core import (QgsVectorLayer,
 class LINZRedistrictHandlerTest(unittest.TestCase):
     """Test LinzRedistrictHandler."""
 
-    def testBatched(self):
+    def testBatched(self):  # pylint: disable=too-many-statements
         """
         Test batched operations
         """
@@ -47,30 +47,74 @@ class LINZRedistrictHandlerTest(unittest.TestCase):
         self.assertTrue(success)
 
         district_layer = QgsVectorLayer(
-            "Polygon?crs=EPSG:4326&field=fld1:string&field=fld2:string",
+            "Polygon?crs=EPSG:4326&field=fld1:string",
             "source", "memory")
+        d = QgsFeature()
+        d.setAttributes(["test1"])
+        d2 = QgsFeature()
+        d2.setAttributes(["test2"])
+        d3 = QgsFeature()
+        d3.setAttributes(["test3"])
+        d4 = QgsFeature()
+        d4.setAttributes(["test4"])
+        d5 = QgsFeature()
+        d5.setAttributes(["aaa"])
+        success, [d, d2, d3, d4, d5] = district_layer.dataProvider().addFeatures([d, d2, d3, d4, d5])
+        self.assertTrue(success)
+
+        #### TODO - add geometry tests!!
 
         handler = LinzRedistrictHandler(meshblock_layer=meshblock_layer, target_field='fld1',
-                                        electorate_layer=district_layer)
+                                        electorate_layer=district_layer, electorate_layer_field='fld1')
         self.assertTrue(meshblock_layer.startEditing())
         handler.begin_edit_group('test')
         self.assertTrue(handler.assign_district([f.id(), f3.id()], 'aaa'))
         self.assertTrue(handler.assign_district([f5.id()], 'aaa'))
 
         # pending changes should be recorded
-        self.assertEqual(handler.pending_changes,
-                         [{'TARGET': [1, 3], 'DISTRICT': 'aaa'}, {'TARGET': [5], 'DISTRICT': 'aaa'}])
+        self.assertEqual(handler.pending_affected_districts, {'aaa': {'ADD': [f.id(), f3.id(), f5.id()], 'REMOVE': []},
+                                                              'test2': {'ADD': [], 'REMOVE': [f5.id()]},
+                                                              'test3': {'ADD': [], 'REMOVE': [f3.id()]},
+                                                              'test4': {'ADD': [], 'REMOVE': [f.id()]}})
+        self.assertEqual(handler.create_affected_district_filter(), "fld1 IN ('test4','test3','aaa','test2')")
+
+        self.assertCountEqual([f["fld1"] for f in handler.get_affected_districts()], ['test4', 'test3', 'aaa', 'test2'])
+        self.assertCountEqual([f["fld1"] for f in handler.get_affected_districts(['fld1'])],
+                              ['test4', 'test3', 'aaa', 'test2'])
+        self.assertFalse([f["fld1"] for f in handler.get_added_meshblocks('test2')])
+        self.assertFalse([f["fld1"] for f in handler.get_added_meshblocks('test3')])
+        self.assertCountEqual([f.id() for f in handler.get_added_meshblocks('aaa')], [1, 3, 5])
+        self.assertCountEqual([f.id() for f in handler.get_removed_meshblocks('test2')], [5])
+        self.assertCountEqual([f.id() for f in handler.get_removed_meshblocks('test3')], [3])
+        self.assertFalse([f["fld1"] for f in handler.get_removed_meshblocks('aaa')])
+
         handler.end_edit_group()
-        self.assertFalse(handler.pending_changes)
+        self.assertFalse(handler.pending_affected_districts)
+        self.assertEqual(handler.create_affected_district_filter(), '')
+        self.assertFalse([f for f in handler.get_affected_districts()])
+        self.assertFalse([f["fld1"] for f in handler.get_added_meshblocks('test3')])
+        self.assertFalse([f["fld1"] for f in handler.get_added_meshblocks('aaa')])
+        self.assertFalse([f.id() for f in handler.get_removed_meshblocks('test2')])
+        self.assertFalse([f.id() for f in handler.get_removed_meshblocks('test3')])
+        self.assertFalse([f["fld1"] for f in handler.get_removed_meshblocks('aaa')])
+
         self.assertEqual([f['fld1'] for f in meshblock_layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
 
         handler.begin_edit_group('test2')
         self.assertTrue(handler.assign_district([f2.id()], 'aaa'))
         self.assertTrue(handler.assign_district([f4.id()], 'aaa'))
-        self.assertEqual(handler.pending_changes,
-                         [{'DISTRICT': 'aaa', 'TARGET': [2]}, {'DISTRICT': 'aaa', 'TARGET': [4]}])
+        self.assertEqual(handler.pending_affected_districts, {'aaa': {'ADD': [f2.id(), f4.id()], 'REMOVE': []},
+                                                              'test2': {'ADD': [], 'REMOVE': [f2.id()]},
+                                                              'test1': {'ADD': [], 'REMOVE': [f4.id()]}})
+        self.assertEqual(handler.create_affected_district_filter(), "fld1 IN ('test2','aaa','test1')")
+        self.assertCountEqual([f["fld1"] for f in handler.get_affected_districts()], ['test2', 'aaa', 'test1'])
+        self.assertCountEqual([f.id() for f in handler.get_added_meshblocks('aaa')], [2, 4])
+        self.assertCountEqual([f.id() for f in handler.get_removed_meshblocks('test2')], [2])
+        self.assertCountEqual([f.id() for f in handler.get_removed_meshblocks('test1')], [4])
+        self.assertFalse([f["fld1"] for f in handler.get_removed_meshblocks('aaa')])
+
         handler.discard_edit_group()
-        self.assertFalse(handler.pending_changes)
+        self.assertFalse(handler.pending_affected_districts)
         self.assertEqual([f['fld1'] for f in meshblock_layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
 
 

@@ -96,7 +96,7 @@ class RedistrictHandlerTest(unittest.TestCase):
         self.assertTrue(handler.assign_district([f2.id()], 'aaa'))
         self.assertTrue(handler.assign_district([f4.id()], 'aaa'))
         handler.discard_edit_group()
-        self.assertEqual(layer.undoStack().count(), 2)  # should be 1, waiting on upstream fix
+        self.assertEqual(layer.undoStack().count(), 1)
         self.assertEqual([f['fld1'] for f in layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
 
 
