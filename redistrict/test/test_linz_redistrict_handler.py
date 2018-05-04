@@ -20,6 +20,8 @@ from redistrict.linz.linz_redistrict_handler import (
 )
 from qgis.core import (QgsVectorLayer,
                        QgsFeature,
+                       QgsGeometry,
+                       QgsRectangle,
                        NULL)
 
 
@@ -35,14 +37,19 @@ class LINZRedistrictHandlerTest(unittest.TestCase):
             "source", "memory")
         f = QgsFeature()
         f.setAttributes(["test4", "xtest1"])
+        f.setGeometry(QgsGeometry.fromRect(QgsRectangle(0, 0, 5, 5)))
         f2 = QgsFeature()
         f2.setAttributes(["test2", "xtest3"])
+        f2.setGeometry(QgsGeometry.fromRect(QgsRectangle(5, 5, 10, 10)))
         f3 = QgsFeature()
         f3.setAttributes(["test3", "xtest3"])
+        f3.setGeometry(QgsGeometry.fromRect(QgsRectangle(0, 5, 5, 10)))
         f4 = QgsFeature()
         f4.setAttributes(["test1", NULL])
+        f4.setGeometry(QgsGeometry.fromRect(QgsRectangle(5, 0, 10, 5)))
         f5 = QgsFeature()
         f5.setAttributes(["test2", "xtest2"])
+        f5.setGeometry(QgsGeometry.fromRect(QgsRectangle(0, 10, 10, 15)))
         success, [f, f2, f3, f4, f5] = meshblock_layer.dataProvider().addFeatures([f, f2, f3, f4, f5])
         self.assertTrue(success)
 
@@ -51,18 +58,20 @@ class LINZRedistrictHandlerTest(unittest.TestCase):
             "source", "memory")
         d = QgsFeature()
         d.setAttributes(["test1"])
+        d.setGeometry(f4.geometry())
         d2 = QgsFeature()
         d2.setAttributes(["test2"])
+        d2.setGeometry(QgsGeometry.unaryUnion([f2.geometry(), f5.geometry()]))
         d3 = QgsFeature()
         d3.setAttributes(["test3"])
+        d3.setGeometry(f3.geometry())
         d4 = QgsFeature()
         d4.setAttributes(["test4"])
+        d4.setGeometry(f.geometry())
         d5 = QgsFeature()
         d5.setAttributes(["aaa"])
         success, [d, d2, d3, d4, d5] = district_layer.dataProvider().addFeatures([d, d2, d3, d4, d5])
         self.assertTrue(success)
-
-        #### TODO - add geometry tests!!
 
         handler = LinzRedistrictHandler(meshblock_layer=meshblock_layer, target_field='fld1',
                                         electorate_layer=district_layer, electorate_layer_field='fld1')
@@ -99,6 +108,13 @@ class LINZRedistrictHandlerTest(unittest.TestCase):
         self.assertFalse([f["fld1"] for f in handler.get_removed_meshblocks('aaa')])
 
         self.assertEqual([f['fld1'] for f in meshblock_layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
+        self.assertEqual(district_layer.getFeature(d.id()).geometry().asWkt(), 'Polygon ((5 0, 10 0, 10 5, 5 5, 5 0))')
+        self.assertEqual(district_layer.getFeature(d2.id()).geometry().asWkt(),
+                         'Polygon ((10 10, 10 5, 5 5, 5 10, 10 10))')
+        self.assertEqual(district_layer.getFeature(d3.id()).geometry().asWkt(), 'GeometryCollection ()')
+        self.assertEqual(district_layer.getFeature(d4.id()).geometry().asWkt(), 'GeometryCollection ()')
+        self.assertEqual(district_layer.getFeature(d5.id()).geometry().asWkt(),
+                         'Polygon ((5 5, 5 0, 0 0, 0 5, 0 10, 0 15, 10 15, 10 10, 5 10, 5 5))')
 
         handler.begin_edit_group('test2')
         self.assertTrue(handler.assign_district([f2.id()], 'aaa'))
@@ -116,6 +132,13 @@ class LINZRedistrictHandlerTest(unittest.TestCase):
         handler.discard_edit_group()
         self.assertFalse(handler.pending_affected_districts)
         self.assertEqual([f['fld1'] for f in meshblock_layer.getFeatures()], ['aaa', 'test2', 'aaa', 'test1', 'aaa'])
+        self.assertEqual(district_layer.getFeature(d.id()).geometry().asWkt(), 'Polygon ((5 0, 10 0, 10 5, 5 5, 5 0))')
+        self.assertEqual(district_layer.getFeature(d2.id()).geometry().asWkt(),
+                         'Polygon ((10 10, 10 5, 5 5, 5 10, 10 10))')
+        self.assertEqual(district_layer.getFeature(d3.id()).geometry().asWkt(), 'GeometryCollection ()')
+        self.assertEqual(district_layer.getFeature(d4.id()).geometry().asWkt(), 'GeometryCollection ()')
+        self.assertEqual(district_layer.getFeature(d5.id()).geometry().asWkt(),
+                         'Polygon ((5 5, 5 0, 0 0, 0 5, 0 10, 0 15, 10 15, 10 10, 5 10, 5 5))')
 
 
 if __name__ == "__main__":
