@@ -160,7 +160,6 @@ class LinzRedistrictHandler(RedistrictHandler):
         :param new_district:
         :return:
         """
-
         # first, record the previous districts, before they get changed by the super method
         request = QgsFeatureRequest().setFilterFids(target_ids)
         request.setFlags(QgsFeatureRequest.NoGeometry)
