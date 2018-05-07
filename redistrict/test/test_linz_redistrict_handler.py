@@ -28,7 +28,7 @@ from qgis.core import (QgsVectorLayer,
 class LINZRedistrictHandlerTest(unittest.TestCase):
     """Test LinzRedistrictHandler."""
 
-    def testBatched(self):  # pylint: disable=too-many-statements
+    def testBatched(self):  # pylint: disable=too-many-statements,too-many-locals
         """
         Test batched operations
         """
