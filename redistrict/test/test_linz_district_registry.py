@@ -29,18 +29,18 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         Test a LinzDistrictRegistry
         """
         layer = QgsVectorLayer(
-            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string",
+            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string",
             "source", "memory")
         f = QgsFeature()
-        f.setAttributes(["test4", "xtest1"])
+        f.setAttributes(["test4", "xtest1", 'GN'])
         f2 = QgsFeature()
-        f2.setAttributes(["test2", "xtest3"])
+        f2.setAttributes(["test2", "xtest3", 'GS'])
         f3 = QgsFeature()
-        f3.setAttributes(["test3", "xtest3"])
+        f3.setAttributes(["test3", "xtest3", 'M'])
         f4 = QgsFeature()
-        f4.setAttributes(["test1", NULL])
+        f4.setAttributes(["test1", NULL, 'GN'])
         f5 = QgsFeature()
-        f5.setAttributes(["test2", "xtest2"])
+        f5.setAttributes(["test2", "xtest2", 'GS'])
         layer.dataProvider().addFeatures([f, f2, f3, f4, f5])
 
         reg = LinzElectoralDistrictRegistry(
@@ -49,12 +49,31 @@ class LinzDistrictRegistryTest(unittest.TestCase):
             title_field='fld1')
         self.assertEqual(reg.district_list(),
                          ['test1', 'test2', 'test3', 'test4'])
+
+        self.assertEqual(reg.get_district_type('test1'), 'GN')
+        self.assertEqual(reg.get_district_type('test2'), 'GS')
+        self.assertEqual(reg.get_district_type('test3'), 'M')
+        self.assertEqual(reg.get_district_type('test4'), 'GN')
+
         reg = LinzElectoralDistrictRegistry(
             source_layer=layer,
             source_field='fld2',
             title_field='fld2')
         self.assertEqual(reg.district_list(),
                          ['xtest1', 'xtest2', 'xtest3'])
+
+    def testDistrictTypeString(self):
+        """
+        Test district_type_title
+        """
+        self.assertEqual(LinzElectoralDistrictRegistry.district_type_title('GN'), 'General North Island')
+        self.assertEqual(LinzElectoralDistrictRegistry.district_type_title('GS'), 'General South Island')
+        self.assertEqual(LinzElectoralDistrictRegistry.district_type_title('M'), 'Māori')
+        try:
+            LinzElectoralDistrictRegistry.district_type_title('X')
+            assert 'Unexpected success - expecting assert'
+        except:  # noqa, pylint: disable=bare-except
+            pass
 
 
 if __name__ == "__main__":
