@@ -87,7 +87,7 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         return f[self.type_field_index]
 
     @staticmethod
-    def district_type_title(district_type: str) -> str:  # pylint: inconsistent-return-statements
+    def district_type_title(district_type: str) -> str:  # pylint: disable=inconsistent-return-statements
         """
         Returns a user-friendly display title for the specified district type.
         :param district_type: district type to retrieve title for
