@@ -99,7 +99,8 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         elif district_type == 'M':
             return QCoreApplication.translate('LinzRedistrict', 'Māori')
 
-        assert False  # should never happen
+        # should never happen
+        assert False  # pylint: inconsistent-return-statements
 
     def get_quota_for_district_type(self, district_type: str) -> int:
         """
