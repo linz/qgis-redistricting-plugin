@@ -166,6 +166,19 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         except:  # noqa, pylint: disable=bare-except
             pass
 
+    def testVariationFromQuota(self):
+        """
+        Test calculating variation from quota
+        """
+        self.assertEqual(LinzElectoralDistrictRegistry.get_variation_from_quota_percent(quota=50000, population=51000),
+                         2)
+        self.assertEqual(LinzElectoralDistrictRegistry.get_variation_from_quota_percent(quota=50000, population=55000),
+                         10)
+        self.assertEqual(LinzElectoralDistrictRegistry.get_variation_from_quota_percent(quota=50000, population=49000),
+                         -2)
+        self.assertEqual(LinzElectoralDistrictRegistry.get_variation_from_quota_percent(quota=50000, population=45000),
+                         -10)
+
 
 if __name__ == "__main__":
     suite = unittest.makeSuite(LinzElectoralDistrictRegistry)

@@ -136,3 +136,13 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         request.setSubsetOfAttributes([self.estimated_pop_field_index])
         f = next(self.source_layer.getFeatures(request))
         return f[self.estimated_pop_field_index]
+
+    @staticmethod
+    def get_variation_from_quota_percent(quota, population) -> int:
+        """
+        Returns the % variation from the quota for an electorate's population
+        :param quota: electorate quota
+        :param population: actual population
+        :return: percentage as int (e.g. 4, -3, etc)
+        """
+        return round(100 * (population - quota) / quota)

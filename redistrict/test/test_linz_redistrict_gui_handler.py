@@ -40,7 +40,7 @@ class LinzRedistrictingGuiHandlerTest(unittest.TestCase):
         f2 = QgsFeature()
         f2.setAttributes(["test2", "xtest3", 'GS', 2000])
         f3 = QgsFeature()
-        f3.setAttributes(["test3", "xtest3", 'M', 3000])
+        f3.setAttributes(["test3", "xtest3", 'M', 63000])
         layer.dataProvider().addFeatures([f, f2, f3])
 
         quota_layer = LinzDistrictRegistryTest.make_quota_layer()
@@ -60,12 +60,14 @@ class LinzRedistrictingGuiHandlerTest(unittest.TestCase):
         self.assertIn('General North Island', dock.frame.toPlainText())
         self.assertIn('59000', dock.frame.toPlainText())
         self.assertIn('1000*', dock.frame.toPlainText())
+        self.assertIn('-98%', dock.frame.toPlainText())
         self.assertIn('estimated population available', dock.frame.toPlainText())
         handler.show_stats_for_district('test3')
         self.assertIn('Statistics for xtest3', dock.frame.toPlainText())
         self.assertIn('Māori', dock.frame.toPlainText())
         self.assertIn('61000', dock.frame.toPlainText())
-        self.assertIn('3000*', dock.frame.toPlainText())
+        self.assertIn('63000*', dock.frame.toPlainText())
+        self.assertIn('+3%', dock.frame.toPlainText())
         self.assertIn('estimated population available', dock.frame.toPlainText())
 
 

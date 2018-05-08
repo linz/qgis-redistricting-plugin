@@ -41,9 +41,14 @@ class LinzRedistrictGuiHandler(RedistrictGuiHandler):
             'DISTRICT_NAME': self._district_registry.get_district_title(district),
             'TYPE': self._district_registry.district_type_title(district_type),
             'QUOTA': self._district_registry.get_quota_for_district_type(district_type),
-            'ESTIMATED_POP': self._district_registry.get_estimated_population(district),
+            'POPULATION': self._district_registry.get_estimated_population(district),
             'IS_ESTIMATED_POP': True
         }
+        contents['VARIATION'] = self._district_registry.get_variation_from_quota_percent(quota=contents['QUOTA'],
+                                                                                         population=contents[
+                                                                                             'POPULATION'])
+        if contents['VARIATION'] > 0:
+            contents['VARIATION'] = '+{}'.format(contents['VARIATION'])
 
         contents['ESTIMATED_POP_*'] = '*' if contents['IS_ESTIMATED_POP'] else ''
         tr_estimated_pop_string = QCoreApplication.translate('LinzRedistrict', 'Only estimated population available')
@@ -54,7 +59,7 @@ class LinzRedistrictGuiHandler(RedistrictGuiHandler):
         message = QCoreApplication.translate('LinzRedistrict', """<h1>Statistics for {DISTRICT_NAME}</h1>
         <h2>{TYPE}</h2>
         <p>Quota: <span style="font-weight:bold">{QUOTA}</span></p>
-        <p>Population: <span style="font-weight:bold;">{ESTIMATED_POP}{ESTIMATED_POP_*}</span> <span style="color: red; font-weight: bold">(+6%)</span>{ESTIMATED_POP_STRING}</p>
+        <p>Population: <span style="font-weight:bold;">{POPULATION}{ESTIMATED_POP_*}</span> <span style="color: red; font-weight: bold">({VARIATION}%)</span>{ESTIMATED_POP_STRING}</p>
         <p>Quota Variation 2020: <span style="font-weight:bold">unknown</span><br>
         Quota Variation 2023: <span style="font-weight:bold">unknown</span></p>
         <p><a href="xxx">Request population from Statistics NZ</a></p>""").format(
