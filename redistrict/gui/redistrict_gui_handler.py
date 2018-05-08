@@ -14,6 +14,7 @@ __copyright__ = 'Copyright 2018, The QGIS Project'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication
+from redistrict.core.district_registry import DistrictRegistry
 
 
 class RedistrictGuiHandler:
@@ -37,7 +38,7 @@ class RedistrictGuiHandler:
         """
         return self._redistrict_dock
 
-    def district_registry(self):
+    def district_registry(self) -> DistrictRegistry:
         """
         Returns the linked district registry
         """
