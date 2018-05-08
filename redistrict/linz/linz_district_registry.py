@@ -87,7 +87,7 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         return f[self.type_field_index]
 
     @staticmethod
-    def district_type_title(district_type: str) -> str:
+    def district_type_title(district_type: str) -> str:  # pylint: inconsistent-return-statements
         """
         Returns a user-friendly display title for the specified district type.
         :param district_type: district type to retrieve title for
@@ -100,7 +100,7 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
             return QCoreApplication.translate('LinzRedistrict', 'Māori')
 
         # should never happen
-        assert False  # pylint: inconsistent-return-statements
+        assert False
 
     def get_quota_for_district_type(self, district_type: str) -> int:
         """
