@@ -21,7 +21,7 @@ from qgis.core import (QgsVectorLayer,
 from redistrict.linz.linz_district_registry import LinzElectoralDistrictRegistry
 from redistrict.linz.linz_redistrict_gui_handler import LinzRedistrictGuiHandler
 from redistrict.gui.redistricting_dock_widget import RedistrictingDockWidget
-from redistrict.test.test_linz_district_registry import LinzDistrictRegistryTest
+from redistrict.test.test_linz_district_registry import make_quota_layer
 from .utilities import get_qgis_app
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
@@ -43,7 +43,7 @@ class LinzRedistrictingGuiHandlerTest(unittest.TestCase):
         f3.setAttributes(["test3", "xtest3", 'M', 63000])
         layer.dataProvider().addFeatures([f, f2, f3])
 
-        quota_layer = LinzDistrictRegistryTest.make_quota_layer()
+        quota_layer = make_quota_layer()
         registry = LinzElectoralDistrictRegistry(
             source_layer=layer,
             quota_layer=quota_layer,
@@ -61,6 +61,7 @@ class LinzRedistrictingGuiHandlerTest(unittest.TestCase):
         self.assertIn('59000', dock.frame.toPlainText())
         self.assertIn('1000*', dock.frame.toPlainText())
         self.assertIn('-98%', dock.frame.toPlainText())
+        self.assertIn('color:#ff0000', dock.frame.toHtml())
         self.assertIn('estimated population available', dock.frame.toPlainText())
         handler.show_stats_for_district('test3')
         self.assertIn('Statistics for xtest3', dock.frame.toPlainText())
@@ -68,6 +69,7 @@ class LinzRedistrictingGuiHandlerTest(unittest.TestCase):
         self.assertIn('61000', dock.frame.toPlainText())
         self.assertIn('63000*', dock.frame.toPlainText())
         self.assertIn('+3%', dock.frame.toPlainText())
+        self.assertNotIn('color:#ff0000', dock.frame.toHtml())
         self.assertIn('estimated population available', dock.frame.toPlainText())
 
 

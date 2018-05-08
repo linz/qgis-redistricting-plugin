@@ -55,11 +55,15 @@ class LinzRedistrictGuiHandler(RedistrictGuiHandler):
         contents['ESTIMATED_POP_STRING'] = """<br>
         <span style="font-style:italic">* {}</span>""".format(tr_estimated_pop_string) if contents[
             'IS_ESTIMATED_POP'] else ''
+        contents['VARIATION_COLOR'] = 'red' if self._district_registry.variation_exceeds_allowance(
+            quota=contents['QUOTA'],
+            population=contents[
+                'POPULATION']) else 'black'
 
         message = QCoreApplication.translate('LinzRedistrict', """<h1>Statistics for {DISTRICT_NAME}</h1>
         <h2>{TYPE}</h2>
         <p>Quota: <span style="font-weight:bold">{QUOTA}</span></p>
-        <p>Population: <span style="font-weight:bold;">{POPULATION}{ESTIMATED_POP_*}</span> <span style="color: red; font-weight: bold">({VARIATION}%)</span>{ESTIMATED_POP_STRING}</p>
+        <p>Population: <span style="font-weight:bold;">{POPULATION}{ESTIMATED_POP_*}</span> <span style="color: {VARIATION_COLOR}; font-weight: bold">({VARIATION}%)</span>{ESTIMATED_POP_STRING}</p>
         <p>Quota Variation 2020: <span style="font-weight:bold">unknown</span><br>
         Quota Variation 2023: <span style="font-weight:bold">unknown</span></p>
         <p><a href="xxx">Request population from Statistics NZ</a></p>""").format(

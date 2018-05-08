@@ -21,25 +21,25 @@ from qgis.core import (QgsVectorLayer,
                        NULL)
 
 
+def make_quota_layer() -> QgsVectorLayer:
+    """
+    Makes a dummy quota layer for testing
+    """
+    layer = QgsVectorLayer(
+        "NoGeometry?field=type:string&field=quota:int",
+        "source", "memory")
+    f = QgsFeature()
+    f.setAttributes(["GN", 59000])
+    f2 = QgsFeature()
+    f2.setAttributes(["GS", 60000])
+    f3 = QgsFeature()
+    f3.setAttributes(["M", 61000])
+    layer.dataProvider().addFeatures([f, f2, f3])
+    return layer
+
+
 class LinzDistrictRegistryTest(unittest.TestCase):
     """Test LinzElectoralDistrictRegistry."""
-
-    @staticmethod
-    def make_quota_layer() -> QgsVectorLayer:
-        """
-        Makes a dummy quota layer for testing
-        """
-        layer = QgsVectorLayer(
-            "NoGeometry?field=type:string&field=quota:int",
-            "source", "memory")
-        f = QgsFeature()
-        f.setAttributes(["GN", 59000])
-        f2 = QgsFeature()
-        f2.setAttributes(["GS", 60000])
-        f3 = QgsFeature()
-        f3.setAttributes(["M", 61000])
-        layer.dataProvider().addFeatures([f, f2, f3])
-        return layer
 
     def testLinzDistrictRegistry(self):
         """
@@ -59,7 +59,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         f5 = QgsFeature()
         f5.setAttributes(["test2", "xtest2", 'GS', 5000])
         layer.dataProvider().addFeatures([f, f2, f3, f4, f5])
-        quota_layer = self.make_quota_layer()
+        quota_layer = make_quota_layer()
 
         reg = LinzElectoralDistrictRegistry(
             source_layer=layer,
@@ -109,7 +109,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         f3 = QgsFeature()
         f3.setAttributes(["test3", "xtest3", 'M'])
         layer.dataProvider().addFeatures([f, f2, f3])
-        quota_layer = self.make_quota_layer()
+        quota_layer = make_quota_layer()
 
         reg = LinzElectoralDistrictRegistry(
             source_layer=layer,
@@ -149,7 +149,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         f3 = QgsFeature()
         f3.setAttributes(["test3", "xtest3", 'M', 3000])
         layer.dataProvider().addFeatures([f, f2, f3])
-        quota_layer = self.make_quota_layer()
+        quota_layer = make_quota_layer()
 
         reg = LinzElectoralDistrictRegistry(
             source_layer=layer,
@@ -178,6 +178,17 @@ class LinzDistrictRegistryTest(unittest.TestCase):
                          -2)
         self.assertEqual(LinzElectoralDistrictRegistry.get_variation_from_quota_percent(quota=50000, population=45000),
                          -10)
+
+    def testVariationExceedsTolerance(self):
+        """
+        Test determining if an electorate's variation exceeds the tolerance
+        """
+        self.assertFalse(LinzElectoralDistrictRegistry.variation_exceeds_allowance(quota=50000, population=51000))
+        self.assertFalse(LinzElectoralDistrictRegistry.variation_exceeds_allowance(quota=50000, population=49000))
+        self.assertTrue(LinzElectoralDistrictRegistry.variation_exceeds_allowance(quota=100000, population=105000))
+        self.assertTrue(LinzElectoralDistrictRegistry.variation_exceeds_allowance(quota=100000, population=95000))
+        self.assertTrue(LinzElectoralDistrictRegistry.variation_exceeds_allowance(quota=50000, population=56000))
+        self.assertTrue(LinzElectoralDistrictRegistry.variation_exceeds_allowance(quota=50000, population=44000))
 
 
 if __name__ == "__main__":

@@ -138,7 +138,7 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         return f[self.estimated_pop_field_index]
 
     @staticmethod
-    def get_variation_from_quota_percent(quota, population) -> int:
+    def get_variation_from_quota_percent(quota: int, population: int) -> int:
         """
         Returns the % variation from the quota for an electorate's population
         :param quota: electorate quota
@@ -146,3 +146,12 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         :return: percentage as int (e.g. 4, -3, etc)
         """
         return round(100 * (population - quota) / quota)
+
+    @staticmethod
+    def variation_exceeds_allowance(quota: int, population: int) -> bool:
+        """
+        Returns true if a variation (in percent) exceeds the acceptable tolerance
+        :param quota: electorate quota
+        :param: population: actual population
+        """
+        return abs((population - quota) / quota) >= 0.05
