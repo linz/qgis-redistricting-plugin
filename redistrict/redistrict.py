@@ -28,12 +28,12 @@ from .linz.linz_district_registry import (
 from .linz.linz_redistrict_handler import LinzRedistrictHandler
 from .gui.district_selection_dialog import (
     DistrictPicker)
-from .gui.redistrict_gui_handler import RedistrictGuiHandler
 from .gui.interactive_redistrict_tool import InteractiveRedistrictingTool
 from .gui.district_statistics_tool import DistrictStatisticsTool
 from .gui.gui_utils import GuiUtils
 from .linz.interactive_redistrict_decorator import CentroidDecoratorFactory
 from .linz.linz_redistricting_dock_widget import LinzRedistrictingDockWidget
+from .linz.linz_redistrict_gui_handler import LinzRedistrictGuiHandler
 
 
 class LinzRedistrict:
@@ -161,8 +161,8 @@ class LinzRedistrict:
         """
         Returns the current redistricting GUI handler
         """
-        return RedistrictGuiHandler(redistrict_dock=self.dock,
-                                    district_registry=self.district_registry)
+        return LinzRedistrictGuiHandler(redistrict_dock=self.dock,
+                                        district_registry=self.district_registry)
 
     def redistrict_selected(self):
         """
