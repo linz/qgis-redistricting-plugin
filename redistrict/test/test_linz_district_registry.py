@@ -46,18 +46,18 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         Test a LinzDistrictRegistry
         """
         layer = QgsVectorLayer(
-            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string",
+            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string&field=estimated_pop:int",
             "source", "memory")
         f = QgsFeature()
-        f.setAttributes(["test4", "xtest1", 'GN'])
+        f.setAttributes(["test4", "xtest1", 'GN', 1000])
         f2 = QgsFeature()
-        f2.setAttributes(["test2", "xtest3", 'GS'])
+        f2.setAttributes(["test2", "xtest3", 'GS', 2000])
         f3 = QgsFeature()
-        f3.setAttributes(["test3", "xtest3", 'M'])
+        f3.setAttributes(["test3", "xtest3", 'M', 3000])
         f4 = QgsFeature()
-        f4.setAttributes(["test1", NULL, 'GN'])
+        f4.setAttributes(["test1", NULL, 'GN', 4000])
         f5 = QgsFeature()
-        f5.setAttributes(["test2", "xtest2", 'GS'])
+        f5.setAttributes(["test2", "xtest2", 'GS', 5000])
         layer.dataProvider().addFeatures([f, f2, f3, f4, f5])
         quota_layer = self.make_quota_layer()
 
@@ -100,7 +100,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         Test retrieving quotas for districts
         """
         layer = QgsVectorLayer(
-            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string",
+            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string&field=estimated_pop:int",
             "source", "memory")
         f = QgsFeature()
         f.setAttributes(["test4", "xtest1", 'GN'])
@@ -131,6 +131,37 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(reg.get_quota_for_district('test3'), 61000)
         try:
             reg.get_quota_for_district('X')
+            assert 'Unexpected success - expecting assert'
+        except:  # noqa, pylint: disable=bare-except
+            pass
+
+    def testPopulations(self):
+        """
+        Test retrieving populations for districts
+        """
+        layer = QgsVectorLayer(
+            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string&field=estimated_pop:int",
+            "source", "memory")
+        f = QgsFeature()
+        f.setAttributes(["test4", "xtest1", 'GN', 1000])
+        f2 = QgsFeature()
+        f2.setAttributes(["test2", "xtest3", 'GS', 2000])
+        f3 = QgsFeature()
+        f3.setAttributes(["test3", "xtest3", 'M', 3000])
+        layer.dataProvider().addFeatures([f, f2, f3])
+        quota_layer = self.make_quota_layer()
+
+        reg = LinzElectoralDistrictRegistry(
+            source_layer=layer,
+            quota_layer=quota_layer,
+            source_field='fld1',
+            title_field='fld1')
+
+        self.assertEqual(reg.get_estimated_population('test4'), 1000)
+        self.assertEqual(reg.get_estimated_population('test2'), 2000)
+        self.assertEqual(reg.get_estimated_population('test3'), 3000)
+        try:
+            reg.get_estimated_population('X')
             assert 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass

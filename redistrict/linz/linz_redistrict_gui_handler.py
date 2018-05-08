@@ -39,14 +39,22 @@ class LinzRedistrictGuiHandler(RedistrictGuiHandler):
         district_type = self._district_registry.get_district_type(district)
         contents = {
             'DISTRICT_NAME': self._district_registry.get_district_title(district),
-            'TYPE': self._district_registry.district_type_title(district_type)
+            'TYPE': self._district_registry.district_type_title(district_type),
+            'QUOTA': self._district_registry.get_quota_for_district_type(district_type),
+            'ESTIMATED_POP': self._district_registry.get_estimated_population(district),
+            'IS_ESTIMATED_POP': True
         }
+
+        contents['ESTIMATED_POP_*'] = '*' if contents['IS_ESTIMATED_POP'] else ''
+        tr_estimated_pop_string = QCoreApplication.translate('LinzRedistrict', 'Only estimated population available')
+        contents['ESTIMATED_POP_STRING'] = """<br>
+        <span style="font-style:italic">* {}</span>""".format(tr_estimated_pop_string) if contents[
+            'IS_ESTIMATED_POP'] else ''
 
         message = QCoreApplication.translate('LinzRedistrict', """<h1>Statistics for {DISTRICT_NAME}</h1>
         <h2>{TYPE}</h2>
-        <p>Quota: <span style="font-weight:bold">55555</span></p>
-        <p>Population: <span style="font-weight:bold;">54382*</span> <span style="color: red; font-weight: bold">(+6%)</span><br>
-        <span style="font-style:italic">* Only estimated population available</span></p>
+        <p>Quota: <span style="font-weight:bold">{QUOTA}</span></p>
+        <p>Population: <span style="font-weight:bold;">{ESTIMATED_POP}{ESTIMATED_POP_*}</span> <span style="color: red; font-weight: bold">(+6%)</span>{ESTIMATED_POP_STRING}</p>
         <p>Quota Variation 2020: <span style="font-weight:bold">unknown</span><br>
         Quota Variation 2023: <span style="font-weight:bold">unknown</span></p>
         <p><a href="xxx">Request population from Statistics NZ</a></p>""").format(

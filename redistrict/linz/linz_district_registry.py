@@ -50,10 +50,14 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
                          type_string_sentence='electorate',
                          type_string_sentence_plural='electorates')
         self.type_field = 'type'
+        self.estimated_population_field = 'estimated_pop'
+
         self.source_field_index = self.source_layer.fields().lookupField(self.source_field)
         assert self.source_field_index >= 0
         self.type_field_index = self.source_layer.fields().lookupField(self.type_field)
         assert self.type_field_index >= 0
+        self.estimated_pop_field_index = self.source_layer.fields().lookupField(self.estimated_population_field)
+        assert self.estimated_pop_field_index >= 0
 
         self.quota_layer = quota_layer
 
@@ -119,3 +123,16 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         """
         district_type = self.get_district_type(district)
         return self.get_quota_for_district_type(district_type)
+
+    def get_estimated_population(self, district) -> int:
+        """
+        Returns the estimated (offline) population for the district
+        :param district: district code/id
+        """
+        # lookup matching feature
+        request = QgsFeatureRequest()
+        request.setFilterExpression(QgsExpression.createFieldEqualityExpression(self.source_field, district))
+        request.setFlags(QgsFeatureRequest.NoGeometry)
+        request.setSubsetOfAttributes([self.estimated_pop_field_index])
+        f = next(self.source_layer.getFeatures(request))
+        return f[self.estimated_pop_field_index]
