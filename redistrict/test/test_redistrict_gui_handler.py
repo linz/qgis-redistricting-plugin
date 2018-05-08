@@ -37,6 +37,7 @@ class RedistrictingGuiHandlerTest(unittest.TestCase):
         registry = DistrictRegistry(districts=['a', 'b'])
         handler = RedistrictGuiHandler(redistrict_dock=dock, district_registry=registry)
         self.assertEqual(handler.redistrict_dock(), dock)
+        self.assertEqual(handler.district_registry(), registry)
 
     def testShowStats(self):
         """Test show stats for district"""

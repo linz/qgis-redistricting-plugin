@@ -21,6 +21,7 @@ from qgis.core import (QgsVectorLayer,
 from redistrict.linz.linz_district_registry import LinzElectoralDistrictRegistry
 from redistrict.linz.linz_redistrict_gui_handler import LinzRedistrictGuiHandler
 from redistrict.gui.redistricting_dock_widget import RedistrictingDockWidget
+from redistrict.test.test_linz_district_registry import LinzDistrictRegistryTest
 from .utilities import get_qgis_app
 
 QGIS_APP, CANVAS, IFACE, PARENT = get_qgis_app()
@@ -41,8 +42,11 @@ class LinzRedistrictingGuiHandlerTest(unittest.TestCase):
         f3 = QgsFeature()
         f3.setAttributes(["test3", "xtest3", 'M'])
         layer.dataProvider().addFeatures([f, f2, f3])
+
+        quota_layer = LinzDistrictRegistryTest.make_quota_layer()
         registry = LinzElectoralDistrictRegistry(
             source_layer=layer,
+            quota_layer=quota_layer,
             source_field='fld1',
             title_field='fld2')
 

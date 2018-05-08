@@ -47,6 +47,7 @@ class RedistrictHandlerTest(unittest.TestCase):
         self.assertTrue(success)
 
         handler = RedistrictHandler(target_layer=layer, target_field='fld1')
+
         self.assertFalse(handler.assign_district([], 'aaa'))
         self.assertTrue(layer.startEditing())
         self.assertTrue(handler.assign_district([], 'aaa'))

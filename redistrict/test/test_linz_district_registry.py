@@ -24,6 +24,23 @@ from qgis.core import (QgsVectorLayer,
 class LinzDistrictRegistryTest(unittest.TestCase):
     """Test LinzElectoralDistrictRegistry."""
 
+    @staticmethod
+    def make_quota_layer() -> QgsVectorLayer:
+        """
+        Makes a dummy quota layer for testing
+        """
+        layer = QgsVectorLayer(
+            "NoGeometry?field=type:string&field=quota:int",
+            "source", "memory")
+        f = QgsFeature()
+        f.setAttributes(["GN", 59000])
+        f2 = QgsFeature()
+        f2.setAttributes(["GS", 60000])
+        f3 = QgsFeature()
+        f3.setAttributes(["M", 61000])
+        layer.dataProvider().addFeatures([f, f2, f3])
+        return layer
+
     def testLinzDistrictRegistry(self):
         """
         Test a LinzDistrictRegistry
@@ -42,9 +59,11 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         f5 = QgsFeature()
         f5.setAttributes(["test2", "xtest2", 'GS'])
         layer.dataProvider().addFeatures([f, f2, f3, f4, f5])
+        quota_layer = self.make_quota_layer()
 
         reg = LinzElectoralDistrictRegistry(
             source_layer=layer,
+            quota_layer=quota_layer,
             source_field='fld1',
             title_field='fld1')
         self.assertEqual(reg.district_list(),
@@ -57,6 +76,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
 
         reg = LinzElectoralDistrictRegistry(
             source_layer=layer,
+            quota_layer=quota_layer,
             source_field='fld2',
             title_field='fld2')
         self.assertEqual(reg.district_list(),
@@ -71,6 +91,46 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(LinzElectoralDistrictRegistry.district_type_title('M'), 'Māori')
         try:
             LinzElectoralDistrictRegistry.district_type_title('X')
+            assert 'Unexpected success - expecting assert'
+        except:  # noqa, pylint: disable=bare-except
+            pass
+
+    def testQuotas(self):
+        """
+        Test retrieving quotas for districts
+        """
+        layer = QgsVectorLayer(
+            "Point?crs=EPSG:4326&field=fld1:string&field=fld2:string&field=type:string",
+            "source", "memory")
+        f = QgsFeature()
+        f.setAttributes(["test4", "xtest1", 'GN'])
+        f2 = QgsFeature()
+        f2.setAttributes(["test2", "xtest3", 'GS'])
+        f3 = QgsFeature()
+        f3.setAttributes(["test3", "xtest3", 'M'])
+        layer.dataProvider().addFeatures([f, f2, f3])
+        quota_layer = self.make_quota_layer()
+
+        reg = LinzElectoralDistrictRegistry(
+            source_layer=layer,
+            quota_layer=quota_layer,
+            source_field='fld1',
+            title_field='fld1')
+
+        self.assertEqual(reg.get_quota_for_district_type('GN'), 59000)
+        self.assertEqual(reg.get_quota_for_district_type('GS'), 60000)
+        self.assertEqual(reg.get_quota_for_district_type('M'), 61000)
+        try:
+            reg.get_quota_for_district_type('X')
+            assert 'Unexpected success - expecting assert'
+        except:  # noqa, pylint: disable=bare-except
+            pass
+
+        self.assertEqual(reg.get_quota_for_district('test4'), 59000)
+        self.assertEqual(reg.get_quota_for_district('test2'), 60000)
+        self.assertEqual(reg.get_quota_for_district('test3'), 61000)
+        try:
+            reg.get_quota_for_district('X')
             assert 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass

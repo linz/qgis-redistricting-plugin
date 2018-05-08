@@ -15,7 +15,8 @@ __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsFeatureRequest,
-                       QgsExpression)
+                       QgsExpression,
+                       QgsVectorLayer)
 from redistrict.core.district_registry import VectorLayerDistrictRegistry
 
 
@@ -28,6 +29,7 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
     def __init__(self, source_layer,
                  source_field,
                  title_field,
+                 quota_layer: QgsVectorLayer,
                  name='districts',
                  type_string_title='Electorate'):
         """
@@ -35,6 +37,7 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         :param source_layer: vector layer to retrieve districts from
         :param source_field: source field (name) to retrieve districts
         from
+        :param quota_layer: layer containing quota for district types
         :param name: unique identifying name for registry
         :param type_string_title: title case string for district
         types
@@ -51,6 +54,8 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
         assert self.source_field_index >= 0
         self.type_field_index = self.source_layer.fields().lookupField(self.type_field)
         assert self.type_field_index >= 0
+
+        self.quota_layer = quota_layer
 
     # noinspection PyMethodMayBeStatic
     def modify_district_request(self, request):
@@ -91,3 +96,26 @@ class LinzElectoralDistrictRegistry(VectorLayerDistrictRegistry):
             return QCoreApplication.translate('LinzRedistrict', 'Māori')
 
         assert False  # should never happen
+
+    def get_quota_for_district_type(self, district_type: str) -> int:
+        """
+        Returns the quota for the specified district type
+        :param district_type: district type, e.g. "GS"
+        """
+        quota_field_index = self.quota_layer.fields().lookupField('quota')
+        assert quota_field_index >= 0
+
+        request = QgsFeatureRequest()
+        request.setFilterExpression(QgsExpression.createFieldEqualityExpression('type', district_type))
+        request.setFlags(QgsFeatureRequest.NoGeometry)
+        request.setSubsetOfAttributes([quota_field_index])
+        f = next(self.quota_layer.getFeatures(request))
+        return f[quota_field_index]
+
+    def get_quota_for_district(self, district) -> int:
+        """
+        Returns the quota for the given district
+        :param district: district code/id
+        """
+        district_type = self.get_district_type(district)
+        return self.get_quota_for_district_type(district_type)

@@ -74,12 +74,16 @@ class LinzRedistrict:
             'general')[0]
         self.meshblock_layer = QgsProject.instance().mapLayersByName(
             'meshblock')[0]
+        self.quota_layer = QgsProject.instance().mapLayersByName(
+            'quotas')[0]
+
         self.meshblock_layer.editingStarted.connect(self.toggle_redistrict_actions)
         self.meshblock_layer.editingStopped.connect(self.toggle_redistrict_actions)
         self.meshblock_layer.selectionChanged.connect(self.toggle_redistrict_actions)
         self.district_registry = LinzElectoralDistrictRegistry(
             source_layer=self.electorate_layer,
             source_field='electorate_id',
+            quota_layer=self.quota_layer,
             title_field='name',
             name='General NI')
 
