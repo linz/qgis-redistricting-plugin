@@ -358,23 +358,28 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         if self.is_redistricting:
             return
 
+        # matching layers
+        try:
+            self.electorate_layer = QgsProject.instance().mapLayersByName(
+                'Electorates')[0]
+            self.meshblock_layer = QgsProject.instance().mapLayersByName(
+                'Meshblocks')[0]
+            self.quota_layer = QgsProject.instance().mapLayersByName(
+                'quotas')[0]
+            self.scenario_layer = QgsProject.instance().mapLayersByName(
+                'scenarios')[0]
+            self.meshblock_electorate_layer = QgsProject.instance().mapLayersByName(
+                'meshblock_electorates')[0]
+            self.user_log_layer = QgsProject.instance().mapLayersByName(
+                'user_log')[0]
+        except IndexError:
+            self.report_failure(self.tr('Cannot find map layers - please open the redistricting project first'))
+            self.begin_action.setChecked(False)
+            return
+
         self.is_redistricting = True
         self.begin_action.setChecked(True)
 
-        # matching layers
-        # TODO - use paths, not project layers
-        self.electorate_layer = QgsProject.instance().mapLayersByName(
-            'Electorates')[0]
-        self.meshblock_layer = QgsProject.instance().mapLayersByName(
-            'Meshblocks')[0]
-        self.quota_layer = QgsProject.instance().mapLayersByName(
-            'quotas')[0]
-        self.scenario_layer = QgsProject.instance().mapLayersByName(
-            'scenarios')[0]
-        self.meshblock_electorate_layer = QgsProject.instance().mapLayersByName(
-            'meshblock_electorates')[0]
-        self.user_log_layer = QgsProject.instance().mapLayersByName(
-            'user_log')[0]
         self.db_source = self.electorate_layer.dataProvider().dataSourceUri().split('|')[0]
 
         self.scenario_registry = ScenarioRegistry(source_layer=self.scenario_layer,
