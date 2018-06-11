@@ -161,13 +161,6 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         self.redistricting_menu = QMenu(self.tr('Redistricting'))
 
-        self.open_settings_action = QAction(GuiUtils.get_icon(
-            'open_settings.svg'), self.tr('Open Settings'))
-        self.open_settings_action.triggered.connect(
-            self.open_settings)
-        self.redistricting_menu.addAction(
-            self.open_settings_action)
-
         self.begin_action = QAction(self.tr('Begin Redistricting'))
         self.begin_action.triggered.connect(self.begin_redistricting)
         self.begin_action.setCheckable(True)
@@ -189,6 +182,15 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         switch_maori_electorate_action.triggered.connect(partial(self.set_task_and_show_progress, self.TASK_M))
         switch_menu.addAction(switch_maori_electorate_action)
         self.redistricting_menu.addMenu(switch_menu)
+
+        self.redistricting_menu.addSeparator()
+        self.open_settings_action = QAction(GuiUtils.get_icon(
+            'open_settings.svg'), self.tr('Settings...'))
+        self.open_settings_action.triggered.connect(
+            self.open_settings)
+        self.redistricting_menu.addAction(
+            self.open_settings_action)
+
         self.iface.mainWindow().menuBar().addMenu(self.redistricting_menu)
 
     def create_redistricting_ui(self):  # pylint: disable=too-many-statements,too-many-locals
