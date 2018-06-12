@@ -944,6 +944,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
 
         self.redistricting_toolbar.deleteLater()
         self.redistricting_toolbar = None
+        self.enable_task_switches(False)
 
     def export_database(self):
         """
