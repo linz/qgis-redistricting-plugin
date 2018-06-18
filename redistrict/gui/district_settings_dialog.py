@@ -17,10 +17,15 @@ from qgis.PyQt.QtWidgets import (QDialog,
                                  QDialogButtonBox,
                                  QLabel,
                                  QVBoxLayout,
-                                 QCheckBox)
+                                 QCheckBox,
+                                 QPushButton,
+                                 QMessageBox,
+                                 QLineEdit)
 
 from qgis.core import QgsSettings
 from qgis.gui import QgsAuthConfigSelect
+
+from redistrict.linz.nz_electoral_api import get_api_connector
 
 SETTINGS_AUTH_CONFIG_KEY = 'redistrict/auth_config_id'
 
@@ -57,9 +62,18 @@ class DistrictSettingsDialog(QDialog):
         if auth_id:
             self.auth_value.setConfigId(auth_id)
 
+        layout.addWidget(QLabel(self.tr('API base URL')))
+        self.base_url_edit = QLineEdit()
+        self.base_url_edit.setText(QgsSettings().value('redistrict/base_url', '', str, QgsSettings.Plugins))
+        layout.addWidget(self.base_url_edit)
+
         self.use_mock_checkbox = QCheckBox(self.tr('Use mock Statistics NZ API'))
         self.use_mock_checkbox.setChecked(get_use_mock_api())
         layout.addWidget(self.use_mock_checkbox)
+
+        self.test_button = QPushButton(self.tr('Test API connection'))
+        self.test_button.clicked.connect(self.test_api)
+        layout.addWidget(self.test_button)
 
         button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -73,3 +87,16 @@ class DistrictSettingsDialog(QDialog):
         super().accept()
         QgsSettings().setValue('redistrict/auth_config_id', self.auth_value.configId(), QgsSettings.Plugins)
         QgsSettings().setValue('redistrict/use_mock_api', self.use_mock_checkbox.isChecked(), QgsSettings.Plugins)
+        QgsSettings().setValue('redistrict/base_url', self.base_url_edit.text(), QgsSettings.Plugins)
+
+    def test_api(self):
+        """
+        Tests the API connection (real or mock!)
+        """
+        connector = get_api_connector(use_mock=self.use_mock_checkbox.isChecked())
+        if connector.check():
+            QMessageBox.information(self, self.tr('Test API Connection'),
+                                    self.tr('API responded OK!'), QMessageBox.Ok)
+        else:
+            QMessageBox.critical(self, self.tr('Test API Connection'),
+                                 self.tr('Could not connect to API!'), QMessageBox.Ok)

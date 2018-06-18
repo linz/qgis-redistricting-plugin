@@ -70,9 +70,6 @@ from .linz.validation_task import ValidationTask
 from .linz.export_task import ExportTask
 
 
-API_BASE_URL = 'https://electoral-api-uat.stats.govt.nz/electoral-api-uat/v1/'
-
-
 class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
     """QGIS Plugin Implementation."""
 
