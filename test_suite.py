@@ -32,7 +32,7 @@ __author__ = 'Alessandro Pasotti'
 __revision__ = '$Format:%H$'
 __date__ = '30/04/2018'
 __copyright__ = (
-    'Copyright 2018, North Road')
+    'Copyright 2018, LINZ')
 
 
 def _run_tests(test_suite, package_name, with_coverage=False):
