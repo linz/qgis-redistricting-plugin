@@ -478,6 +478,8 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.electorate_edit_queue = ElectorateEditQueue(electorate_layer=self.electorate_layer)
 
         self.meshblock_layer.undoStack().indexChanged.connect(self.electorate_edit_queue.sync_to_meshblock_undostack_index)
+        self.meshblock_layer.undoStack().indexChanged.connect(
+            self.update_undo_actions)
         self.meshblock_layer.beforeCommitChanges.connect(
             self.electorate_edit_queue.clear)
         self.meshblock_layer.beforeRollBack.connect(
@@ -503,6 +505,14 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.redistrict_selected_action.setEnabled(enabled and has_selection)
         self.interactive_redistrict_action.setEnabled(enabled)
         self.update_layer_modified_actions()
+        self.update_undo_actions()
+
+    def update_undo_actions(self):
+        """
+        Enables or disables undo actions based on their applicability
+        """
+        self.undo_action.setEnabled(self.meshblock_layer.undoStack().canUndo())
+        self.redo_action.setEnabled(self.meshblock_layer.undoStack().canRedo())
 
     def update_layer_modified_actions(self):
         """
@@ -577,6 +587,8 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
             self.redo_action.setEnabled(enabled)
             self.validate_action.setEnabled(enabled)
             self.export_action.setEnabled(enabled)
+            if enabled:
+                self.toggle_redistrict_actions()
         except (AttributeError, RuntimeError):
             pass
 
