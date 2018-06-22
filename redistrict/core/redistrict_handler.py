@@ -32,6 +32,18 @@ class RedistrictHandler(QObject):
         self.target_field = target_field
         self.pending_changes = []
 
+    def begin_operation(self):
+        """
+        Called when a new edit type operation is about to begin, before any edits are made
+        """
+        pass
+
+    def end_operation(self):
+        """
+        Called when a after an edit type operation is about to finished
+        """
+        pass
+
     def begin_edit_group(self, message):
         """
         Begins a batch redistricting edit operation

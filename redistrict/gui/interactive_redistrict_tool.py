@@ -246,6 +246,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
         self.is_active = False
         self.districts = None
         self.current_district = None
+        self.handler.end_operation()
 
     def canvasPressEvent(self, event):  # pylint: disable=missing-docstring
         if event.button() == Qt.MiddleButton:
@@ -278,6 +279,7 @@ class InteractiveRedistrictingTool(QgsMapTool):
                 self.click_point = event.mapPoint()
                 self.snap_indicator.setMatch(QgsPointLocator.Match())
                 self.districts = districts
+                self.handler.begin_operation()
                 if self.decorator_factory is not None:
                     self.pop_decorator = self.decorator_factory.create_decorator(self.canvas())
                 self.canvas().update()

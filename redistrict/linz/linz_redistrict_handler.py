@@ -25,6 +25,7 @@ from qgis.core import (QgsApplication,
                        QgsExpression,
                        NULL)
 from redistrict.core.redistrict_handler import RedistrictHandler
+from redistrict.core.core_utils import CoreUtils
 from redistrict.linz.electorate_changes_queue import ElectorateEditQueue
 
 
@@ -187,6 +188,13 @@ class LinzRedistrictHandler(RedistrictHandler):
             return original_district_geometry.difference(to_remove)
 
         return original_district_geometry
+
+    def begin_operation(self):
+        CoreUtils.enable_labels_for_layer(self.electorate_layer, False)
+
+    def end_operation(self):
+        # turn back on labels on the electorate layer
+        CoreUtils.enable_labels_for_layer(self.electorate_layer, True)
 
     def end_edit_group(self):
         super().end_edit_group()
