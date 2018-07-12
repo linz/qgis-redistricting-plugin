@@ -190,7 +190,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         self.redistricting_menu = QMenu(self.tr('Redistricting'))
 
-        self.begin_action = QAction(self.tr('Begin Redistricting'))
+        self.begin_action = QAction(self.tr('Toggle Redistricting'))
         self.begin_action.toggled.connect(self.begin_redistricting)
         self.begin_action.setCheckable(True)
         self.redistricting_menu.addAction(self.begin_action)
