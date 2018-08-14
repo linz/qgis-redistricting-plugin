@@ -52,7 +52,6 @@ class ConcordanceItem():
         """
 
         self.censusStandardMeshblock = censusStandardMeshblock
-        self.unformatted_electorate = electorate
         self.electorate = ConcordanceItem.format_electorate_id(electorate, task)
 
     @staticmethod

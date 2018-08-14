@@ -94,16 +94,12 @@ class NzElectoralApiTest(unittest.TestCase):
         """
         item = ConcordanceItem("0001234", electorate='N01', task='GN')
         self.assertEqual(item.electorate, 'N01')
-        self.assertEqual(item.unformatted_electorate, 'N01')
         item = ConcordanceItem("0001234", electorate='01', task='GN')
         self.assertEqual(item.electorate, 'N01')
-        self.assertEqual(item.unformatted_electorate, '01')
         item = ConcordanceItem("0001234", electorate='01', task='GS')
         self.assertEqual(item.electorate, 'S01')
-        self.assertEqual(item.unformatted_electorate, '01')
         item = ConcordanceItem("0001234", electorate='01', task='M')
         self.assertEqual(item.electorate, 'M01')
-        self.assertEqual(item.unformatted_electorate, '01')
 
     def test_status(self):
         """Test status API call"""

@@ -1467,7 +1467,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
 
         electorates = set()
         for concordance_item in boundary_request.concordance:
-            electorate_id = int(concordance_item.unformatted_electorate)
+            electorate_id = int(concordance_item.electorate[1:])
             electorates.add(electorate_id)
 
         for electorate_id in electorates:
