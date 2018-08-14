@@ -52,6 +52,15 @@ class NzElectoralApiTest(unittest.TestCase):
         cls.api = NzElectoralApi('http://localhost:%s' % cls.port)
         cls.last_result = None
 
+    def test_format_meshblock_number(self):
+        """
+        Test formatting a meshblock number to format required by stats api
+        """
+        self.assertEqual(ConcordanceItem.format_meshblock_number('1'), '0000001')
+        self.assertEqual(ConcordanceItem.format_meshblock_number('11'), '0000011')
+        self.assertEqual(ConcordanceItem.format_meshblock_number('111111'), '0111111')
+        self.assertEqual(ConcordanceItem.format_meshblock_number('1111111'), '1111111')
+
     def test_format_electorate_id(self):
         """
         Test formatting an electorate id to format required by stats api
