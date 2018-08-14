@@ -91,7 +91,7 @@ class ApiRequestQueue(QObject):
         Removes a request from the queue
         :param request_id: id of request
         """
-        self.boundary_change_queue = [c for c in self.boundary_change_queue if c[1] != request_id]
+        self.boundary_change_queue = [c for c in self.boundary_change_queue if c[2] != request_id]
 
     def check_for_result(self, connector: NzElectoralApi, boundary_request: BoundaryRequest, request_id: str):
         """
