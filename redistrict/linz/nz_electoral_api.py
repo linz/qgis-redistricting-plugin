@@ -67,6 +67,22 @@ class ConcordanceItem():
             return electorate_id
         return code + ('00' + str(electorate_id))[-2:]
 
+    @staticmethod
+    def deformat_electorate_id(electorate_id: str) -> str:
+        """
+        'Deformats' a formatted electorate id string to the original id
+        :param electorate_id: formatted electorate id
+        :return: deformatted id
+        """
+        if electorate_id.startswith('N') or electorate_id.startswith('S') or \
+                electorate_id.startswith('M'):
+            electorate_id = electorate_id[1:]
+
+        if electorate_id.startswith('0'):
+            electorate_id = electorate_id[1:]
+
+        return electorate_id
+
 
 class BoundaryRequest():
     """BoundaryRequest struct
