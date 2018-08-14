@@ -65,7 +65,7 @@ class ConcordanceItem():
         code = task[-1].upper()
         if electorate_id.startswith(code):
             return electorate_id
-        return code + electorate_id
+        return code + ('00' + str(electorate_id))[-2:]
 
 
 class BoundaryRequest():

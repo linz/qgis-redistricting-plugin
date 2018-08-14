@@ -52,6 +52,16 @@ class NzElectoralApiTest(unittest.TestCase):
         cls.api = NzElectoralApi('http://localhost:%s' % cls.port)
         cls.last_result = None
 
+    def test_format_electorate_id(self):
+        """
+        Test formatting an electorate id to format required by stats api
+        """
+        self.assertEqual(ConcordanceItem.format_electorate_id('M01', 'M'), 'M01')
+        self.assertEqual(ConcordanceItem.format_electorate_id('S02', 'GS'), 'S02')
+        self.assertEqual(ConcordanceItem.format_electorate_id('N02', 'GN'), 'N02')
+        self.assertEqual(ConcordanceItem.format_electorate_id('2', 'GS'), 'S02')
+        self.assertEqual(ConcordanceItem.format_electorate_id('12', 'GS'), 'S12')
+
     def _parse_result(self, api_method, result, *args, in_args=[], **kwargs):
         """Parse the result and check them"""
         # pylint: disable=unused-argument
