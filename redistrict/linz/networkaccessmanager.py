@@ -299,6 +299,10 @@ class NetworkAccessManager():
             else:
                 msg = "Network error: {0}".format(errString)
 
+            # for some errors, e.g. 422, server may have sent extra info in the reply which is useful to retrieve
+            ba = self.reply.readAll()
+            self.http_call_result.content = bytes(ba)
+
             self.http_call_result.reason = msg
             self.http_call_result.ok = False
             self.msg_log(msg)
