@@ -88,7 +88,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
     TASK_GS = 'GS'
     TASK_M = 'M'
 
-    MESHBLOCK_NUMBER_FIELD = 'MB2018_V1_00'
+    MESHBLOCK_NUMBER_FIELD = 'meshblock_no'
 
     def __init__(self, iface: QgisInterface):  # pylint: disable=too-many-statements
         """Constructor.

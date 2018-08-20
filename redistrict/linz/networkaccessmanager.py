@@ -328,7 +328,6 @@ class NetworkAccessManager():
             # overload exception to the custom exception if available
             if self.exception_class:
                 self.http_call_result.exception = self.exception_class(msg)
-
         else:
             # Handle redirections
             redirectionUrl = self.reply.attribute(
