@@ -34,6 +34,7 @@ from qgis.PyQt.QtWidgets import (QToolBar,
                                  QMenu,
                                  QFileDialog)
 from qgis.core import (NULL,
+                       QgsMessageLog,
                        QgsApplication,
                        QgsProject,
                        QgsVectorLayer,
@@ -1418,13 +1419,12 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         """
         Triggered when an API request is finalized
         """
-        if result['status_code'] != 200:
-            self.report_failure(self.tr('Statistics NZ API request failed'))
-            return
+        QgsMessageLog.logMessage('Response ' + str(result), "REDISTRICT")
 
         district_registry = self.get_district_registry()
-        for electorate_table in result['content']['populationTable']:
-            electorate_id = int(electorate_table['electorate'])
+        for electorate_table in result['populationTable']:
+            # remove the N/S/M temporary code used only for stats nz api
+            electorate_id = int(electorate_table['electorate'][1:])
             district_registry.update_stats_nz_values(electorate_id, electorate_table)
 
         self.refresh_dock_stats()
