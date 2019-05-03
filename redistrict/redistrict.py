@@ -727,7 +727,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         """
         handler = LinzRedistrictGuiHandler(redistrict_dock=self.dock,
                                            district_registry=self.get_district_registry(),
-                                           request_population_callback=self.request_population_update)
+                                           request_population_callback=self.update_stats_for_scenario)
         handler.current_district_changed.connect(self.current_dock_electorate_changed)
         return handler
 
