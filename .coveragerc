@@ -1,0 +1,6 @@
+[run]
+omit = test_suite.py
+       redistrict/test/*
+       redistrict/__init__.py
+       redistrict/core/__init__.py
+       redistrict/gui/__init__.py

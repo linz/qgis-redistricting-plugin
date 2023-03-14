@@ -1,0 +1,6 @@
+.coverage
+.idea
+.noseids
+*.pyc
+#*.qm
+*_local*.*
