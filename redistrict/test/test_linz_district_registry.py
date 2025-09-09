@@ -1,27 +1,17 @@
-# coding=utf-8
-"""LINZ District Registry Test.
-
-.. note:: This program is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published by
-     the Free Software Foundation; either version 2 of the License, or
-     (at your option) any later version.
-
+"""
+LINZ District Registry Test.
 """
 
-__author__ = '(C) 2018 by Nyall Dawson'
-__date__ = '20/04/2018'
-__copyright__ = 'Copyright 2018, LINZ'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
-
 import unittest
-from redistrict.linz.linz_district_registry import LinzElectoralDistrictRegistry
-from qgis.core import (QgsVectorLayer,
-                       QgsFeature,
-                       QgsGeometry,
-                       QgsRectangle,
-                       QgsCoordinateReferenceSystem,
-                       NULL)
+from qgis.core import (
+    QgsVectorLayer,
+    QgsFeature,
+    QgsGeometry,
+    QgsRectangle,
+    QgsCoordinateReferenceSystem,
+    NULL)
+from redistrict.linz.linz_district_registry import \
+    LinzElectoralDistrictRegistry
 
 
 def make_quota_layer() -> QgsVectorLayer:
@@ -37,7 +27,8 @@ def make_quota_layer() -> QgsVectorLayer:
     f2.setAttributes(["GS", 60000])
     f3 = QgsFeature()
     f3.setAttributes(["M", 61000])
-    layer.dataProvider().addFeatures([f, f2, f3])
+    assert layer.dataProvider().addFeatures([f, f2, f3])
+    assert layer.featureCount() == 3
     return layer
 
 
@@ -125,7 +116,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(LinzElectoralDistrictRegistry.district_type_title('M'), 'Māori')
         try:
             LinzElectoralDistrictRegistry.district_type_title('X')
-            assert 'Unexpected success - expecting assert'
+            assert False, 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass
 
@@ -157,7 +148,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(reg.get_quota_for_district_type('M'), 61000)
         try:
             reg.get_quota_for_district_type('X')
-            assert 'Unexpected success - expecting assert'
+            assert False, 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass
 
@@ -166,7 +157,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(reg.get_quota_for_district('test3'), 61000)
         try:
             reg.get_quota_for_district('X')
-            assert 'Unexpected success - expecting assert'
+            assert False, 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass
 
@@ -199,7 +190,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(reg.get_code_for_electorate(f3.id()), 'xtest3')
         try:
             reg.get_code_for_electorate(-10)
-            assert 'Unexpected success - expecting assert'
+            assert False, 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass
 
@@ -231,7 +222,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         self.assertEqual(reg.get_estimated_population('test3'), 3000)
         try:
             reg.get_estimated_population('X')
-            assert 'Unexpected success - expecting assert'
+            assert False, 'Unexpected success - expecting assert'
         except:  # noqa, pylint: disable=bare-except
             pass
 
@@ -384,7 +375,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         Test setting the Stats NZ stored api values for electorates
         """
         layer = QgsVectorLayer(
-            "Point?crs=EPSG:4326&field=electorate_id:int&field=code:string&field=fld1:string&field=type:string&field=estimated_pop:int&field=deprecated:int&field=stats_nz_pop:int&field=stats_nz_var_20:int&field=stats_nz_var_23:int&field=scenario_id:int&field=electorate_id_stats:string&field=expected_regions:int",
+            "Point?crs=EPSG:4326&field=electorate_id:int&field=code:string&field=fld1:string&field=type:string&field=estimated_pop:int&field=deprecated:int&field=stats_nz_pop:int&field=stats_nz_var_20:double&field=stats_nz_var_23:double&field=scenario_id:int&field=electorate_id_stats:string&field=expected_regions:int",
             "source", "memory")
         f = QgsFeature()
         f.setAttributes([1, "code4", "test4", 'GN', 1000, True])
@@ -392,7 +383,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         f2.setAttributes([2, "code2", "test2", 'GN', 2000, False])
         f3 = QgsFeature()
         f3.setAttributes([3, "code3", "test3", 'GN', 3000, True])
-        layer.dataProvider().addFeatures([f, f2, f3])
+        self.assertTrue(layer.dataProvider().addFeatures([f, f2, f3]))
         quota_layer = make_quota_layer()
 
         reg = LinzElectoralDistrictRegistry(
@@ -430,7 +421,7 @@ class LinzDistrictRegistryTest(unittest.TestCase):
         Test retrieving cached stats nz values
         """
         layer = QgsVectorLayer(
-            "Point?crs=EPSG:4326&field=electorate_id:int&field=code:string&field=fld1:string&field=type:string&field=estimated_pop:int&field=deprecated:int&field=stats_nz_pop:int&field=stats_nz_var_20:int&field=stats_nz_var_23:int&field=scenario_id:int&field=electorate_id_stats:string&field=expected_regions:int",
+            "Point?crs=EPSG:4326&field=electorate_id:int&field=code:string&field=fld1:string&field=type:string&field=estimated_pop:int&field=deprecated:int&field=stats_nz_pop:int&field=stats_nz_var_20:double&field=stats_nz_var_23:double&field=scenario_id:int&field=electorate_id_stats:string&field=expected_regions:int",
             "source", "memory")
         f = QgsFeature()
         f.setAttributes([1, "code4", "test4", 'GN', 1000, True])

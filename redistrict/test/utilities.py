@@ -1,11 +1,13 @@
-# coding=utf-8
-"""Common functionality used by regression tests."""
+"""
+Common functionality used by regression tests.
+"""
 
 import sys
 import logging
 import os
 
 from qgis.utils import iface
+from qgis.core import QgsGeometry
 
 LOGGER = logging.getLogger('QGIS')
 QGIS_APP = None  # Static variable used to hold hand to running QGIS app
@@ -40,10 +42,10 @@ def get_qgis_app(cleanup=True):
     from qgis.PyQt.QtWidgets import QWidget  # pylint: disable=import-outside-toplevel
     from .qgis_interface import QgisInterface  # pylint: disable=import-outside-toplevel
 
-    global QGISAPP  # pylint: disable=global-variable-undefined
+    global QGISAPP  # pylint: disable=global-variable-undefined,used-before-assignment
 
     try:
-        QGISAPP
+        QGISAPP  # pylint: disable=used-before-assignment
     except NameError:
         myGuiFlag = True  # All test will run qgis in gui mode
 
@@ -70,7 +72,7 @@ def get_qgis_app(cleanup=True):
             :param level: log message level (severity)
             :return:
             """
-            print('{}({}): {}'.format(tag, level, message))
+            print(f'{tag}({level}): {message}')
 
         QgsApplication.instance().messageLog().messageReceived.connect(
             debug_log_message)
@@ -104,3 +106,12 @@ def get_qgis_app(cleanup=True):
         IFACE = QgisInterface(CANVAS)
 
     return QGISAPP, CANVAS, IFACE, PARENT
+
+
+def normalized_wkt(geometry: QgsGeometry, precision: int = 17) -> str:
+    """
+    Returns the WKT of a normalized geometry
+    """
+    normalized = QgsGeometry(geometry)
+    normalized.normalize()
+    return normalized.asWkt(precision)

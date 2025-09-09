@@ -1,27 +1,19 @@
-# -*- coding: utf-8 -*-
-"""LINZ Redistricting Plugin - LINZ Specific Redistrict Handler
-
-.. note:: This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+"""
+LINZ Redistricting Plugin - LINZ Specific Redistrict Handler
 """
 
-__author__ = '(C) 2018 by Nyall Dawson'
-__date__ = '20/04/2018'
-__copyright__ = 'Copyright 2018, LINZ'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
-
-from qgis.PyQt.QtCore import (QDateTime,
-                              QVariant)
-from qgis.core import (QgsApplication,
-                       QgsFeatureRequest,
-                       QgsFeature,
-                       QgsFeatureIterator,
-                       QgsGeometry,
-                       QgsVectorLayer,
-                       NULL)
+from qgis.PyQt.QtCore import (
+    QDateTime,
+    QVariant
+)
+from qgis.core import (
+    QgsApplication,
+    QgsFeatureRequest,
+    QgsFeature,
+    QgsFeatureIterator,
+    QgsVectorLayer,
+    NULL
+)
 from redistrict.core.redistrict_handler import RedistrictHandler
 from redistrict.core.core_utils import CoreUtils
 from redistrict.linz.electorate_changes_queue import ElectorateEditQueue
@@ -71,7 +63,7 @@ class LinzRedistrictHandler(RedistrictHandler):
         assert self.estimated_pop_idx >= 0
         self.meshblock_number_idx = self.target_layer.fields().lookupField(meshblock_number_field_name)
         assert self.meshblock_number_idx >= 0
-        self.offline_pop_field = 'offline_pop_{}'.format(self.task.lower())
+        self.offline_pop_field = f'offline_pop_{self.task.lower()}'
         self.offline_pop_field_idx = meshblock_layer.fields().lookupField(self.offline_pop_field)
         assert self.offline_pop_field_idx >= 0
 
@@ -111,14 +103,18 @@ class LinzRedistrictHandler(RedistrictHandler):
             return ''
 
         field_index = self.electorate_layer.fields().lookupField(self.electorate_layer_field)
-        if self.electorate_layer.fields().at(field_index).type() == QVariant.String:
-            district_filter = "{} IN ('{}')".format(self.electorate_layer_field,
-                                                    "','".join(sorted([str(k) for k in
-                                                                       self.pending_affected_districts.keys()])))  # pylint: disable=consider-iterating-dictionary
+        # pylint: disable=consider-iterating-dictionary
+        if self.electorate_layer.fields().at(
+                field_index).type() == QVariant.String:
+            district_str = "','".join(sorted([str(k) for k in
+                                              self.pending_affected_districts.keys()]))
+            district_filter = f"{self.electorate_layer_field} IN ('{district_str}')"
         else:
-            district_filter = "{} IN ({})".format(self.electorate_layer_field,
-                                                  ",".join(sorted([str(k) for k in
-                                                                   self.pending_affected_districts.keys()])))  # pylint: disable=consider-iterating-dictionary
+            district_str = ",".join(sorted([str(k) for k in
+                                            self.pending_affected_districts.keys()]))
+            district_filter = f"{self.electorate_layer_field} IN ({district_str})"
+        # pylint: enable=consider-iterating-dictionary
+
         return district_filter
 
     def get_affected_districts(self, attributes_required=None, needs_geometry=True):
@@ -171,7 +167,7 @@ class LinzRedistrictHandler(RedistrictHandler):
         parts = [f.geometry() for f in self.get_added_meshblocks(district)]
         if parts:
             parts.append(original_district_geometry)
-            return QgsGeometry.unaryUnion(parts)
+            return CoreUtils.union_geometries(parts)
 
         return original_district_geometry
 
@@ -228,7 +224,7 @@ class LinzRedistrictHandler(RedistrictHandler):
         """
         parts = [f.geometry() for f in self.get_removed_meshblocks(district)]
         if parts:
-            to_remove = QgsGeometry.unaryUnion(parts)
+            to_remove = CoreUtils.union_geometries(parts)
             return original_district_geometry.difference(to_remove)
 
         return original_district_geometry

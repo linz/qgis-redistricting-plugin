@@ -1,39 +1,43 @@
-# -*- coding: utf-8 -*-
-"""LINZ Redistricting Plugin
-
-.. note:: This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+"""
+LINZ Redistricting Plugin
 """
 
 # pylint: disable=too-many-lines,too-many-statements
 
-__author__ = '(C) 2018 by Nyall Dawson'
-__date__ = '20/04/2018'
-__copyright__ = 'Copyright 2018, LINZ'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
-
 import os.path
 from functools import partial
-from typing import Optional
+from typing import (
+    Optional,
+    List
+)
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import (QObject,
-                              Qt,
-                              QUrl,
-                              QDir,
-                              QFile,
-                              QSettings,
-                              QTranslator,
-                              QCoreApplication)
-from qgis.PyQt.QtGui import QDesktopServices
-from qgis.PyQt.QtWidgets import (QToolBar,
-                                 QAction,
-                                 QMessageBox,
-                                 QToolButton,
-                                 QMenu,
-                                 QFileDialog)
+from qgis.PyQt.QtCore import (
+    QObject,
+    Qt,
+    QUrl,
+    QDir,
+    QFile,
+    QSettings,
+    QTranslator,
+    QCoreApplication,
+    QThread
+)
+from qgis.PyQt.QtGui import (
+    QDesktopServices,
+    QKeySequence
+)
+from qgis.PyQt.QtWidgets import (
+    QToolBar,
+    QAction,
+    QMessageBox,
+    QToolButton,
+    QMenu,
+    QFileDialog,
+    QShortcut,
+    QDockWidget,
+    QWidget,
+    QLineEdit
+)
 from qgis.core import (NULL,
                        QgsMessageLog,
                        QgsApplication,
@@ -44,10 +48,16 @@ from qgis.core import (NULL,
                        Qgis,
                        QgsSettings,
                        QgsTask,
-                       QgsProviderRegistry)
-from qgis.gui import (QgisInterface,
-                      QgsMapTool,
-                      QgsNewNameDialog)
+                       QgsProviderRegistry,
+                       QgsFeatureSink,
+                       QgsFeature,
+                       QgsReferencedRectangle)
+from qgis.gui import (
+    QgisInterface,
+    QgsMapTool,
+    QgsNewNameDialog,
+    QgsMapCanvas
+)
 from .linz.linz_district_registry import (
     LinzElectoralDistrictRegistry)
 from .linz.linz_redistrict_handler import LinzRedistrictHandler
@@ -69,6 +79,7 @@ from .linz.linz_redistricting_dock_widget import LinzRedistrictingDockWidget
 from .linz.linz_validation_results_dock_widget import LinzValidationResultsDockWidget
 from .linz.linz_redistrict_gui_handler import LinzRedistrictGuiHandler
 from .linz.scenario_selection_dialog import ScenarioSelectionDialog
+from .linz.scenario_comparison_dialog import ScenarioComparisonDialog
 from .linz.db_utils import CopyFileTask
 from .linz.create_electorate_dialog import CreateElectorateDialog
 from .linz.deprecate_electorate_dialog import DeprecateElectorateDialog
@@ -81,6 +92,8 @@ from .linz.nz_electoral_api import ConcordanceItem, BoundaryRequest, get_api_con
 from .linz.api_request_queue import ApiRequestQueue
 from .linz.electorate_changes_queue import ElectorateEditQueue
 from .linz.population_dock_widget import SelectedPopulationDockWidget
+from .linz.compare_scenarios_task import CompareScenariosTask
+
 
 VERSION = '0.1'
 
@@ -95,6 +108,8 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
     MESHBLOCK_NUMBER_FIELD = 'meshblock_no'
 
     USE_2018_MESHBLOCKS = False
+
+    SIMPLIFIED_MODE_TOOLBAR_SCALE = 1.4
 
     def __init__(self, iface: QgisInterface):  # pylint: disable=too-many-statements
         """Constructor.
@@ -114,7 +129,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
-            '{}.qm'.format(locale))
+            f'{locale}.qm')
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -123,6 +138,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
 
         self.redistricting_menu = None
         self.redistricting_toolbar = None
+        self._enter_simplified_action: Optional[QAction] = None
         self.open_settings_action = None
         self.interactive_redistrict_action = None
         self.redistrict_selected_action = None
@@ -135,13 +151,17 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.stats_tool_action = None
         self.validate_action = None
         self.show_population_dock_action = None
-        self.theme_menu = None
+
+        self.theme_menu = QMenu()
+        self.theme_menu.aboutToShow.connect(
+            partial(self.populate_theme_menu, self.theme_menu, False))
+
         self.new_themed_view_menu = None
         self.tool = None
         self.dock = None
         self.validation_results_dock = None
         self.scenarios_tool_button = None
-        self.context = None
+        self.context: Optional[LinzRedistrictingContext] = None
         self.current_dock_electorate = None
         self.help_action = None
         self.scenarios_menu = None
@@ -149,6 +169,13 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.database_menu = None
         self.rebuild_action = None
         self.export_action = None
+        self.toggle_simplified_mode_action: Optional[QShortcut] = None
+        self.simplified_toolbar: Optional[QToolBar] = None
+        self._exit_simplified_action: Optional[QAction] = None
+        self._is_simplified = False
+        self._previously_visible_toolbars: List[QToolBar] = []
+        self._previously_visible_docks: List[QDockWidget] = []
+        self._previously_visible_statusbar_widgets: List[QWidget] = []
 
         self.is_redistricting = False
         self.electorate_layer = None
@@ -169,6 +196,8 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.staged_task = None
         self.validation_task = None
         self.export_task = None
+        self.compare_task = None
+        self.outstanding_compare_results = {}
         self.progress_item = None
         self.switch_menu = None
         self.selected_population_dock = None
@@ -228,6 +257,14 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.redistricting_menu.addMenu(self.switch_menu)
 
         self.redistricting_menu.addSeparator()
+        self._enter_simplified_action = QAction(
+            self.tr('Simplified Mode')
+        )
+        self._enter_simplified_action.triggered.connect(
+            self._toggle_simplified)
+        self.redistricting_menu.addAction(
+            self._enter_simplified_action)
+
         self.open_settings_action = QAction(GuiUtils.get_icon(
             'open_settings.svg'), self.tr('Settings...'))
         self.open_settings_action.triggered.connect(
@@ -247,6 +284,12 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.redistricting_menu.addAction(about_action)
 
         self.iface.mainWindow().menuBar().addMenu(self.redistricting_menu)
+
+        self.toggle_simplified_mode_action = QShortcut(
+            QKeySequence('Alt+F10'), self.iface.mainWindow(),
+            context=Qt.WindowShortcut)
+        self.toggle_simplified_mode_action.setObjectName('Show simplified')
+        self.toggle_simplified_mode_action.activated.connect(self._toggle_simplified)
 
     def create_redistricting_ui(self):  # pylint: disable=too-many-statements,too-many-locals
         """
@@ -309,9 +352,6 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.stats_tool_action.triggered.connect(
             self.trigger_stats_tool)
         self.redistricting_toolbar.addAction(self.stats_tool_action)
-
-        self.theme_menu = QMenu()
-        self.theme_menu.aboutToShow.connect(partial(self.populate_theme_menu, self.theme_menu, False))
 
         themes_tool_button = QToolButton()
         themes_tool_button.setAutoRaise(True)
@@ -388,6 +428,10 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         import_scenario_action.triggered.connect(self.import_scenario)
         self.scenarios_menu.addAction(import_scenario_action)
 
+        compare_scenarios_action = QAction(self.tr('Compare Scenarios...'), parent=self.scenarios_menu)
+        compare_scenarios_action.triggered.connect(self.compare_scenarios)
+        self.scenarios_menu.addAction(compare_scenarios_action)
+
         self.scenarios_tool_button.setMenu(self.scenarios_menu)
         self.dock.dock_toolbar().addWidget(self.scenarios_tool_button)
 
@@ -447,6 +491,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
 
         self.set_task(QgsSettings().value('redistricting/last_task', self.TASK_GN))
 
+    # pylint: disable=too-many-branches,too-many-return-statements
     def begin_redistricting(self, checked):
         """
         Starts the redistricting operation, opening toolbars and docks as needed
@@ -470,23 +515,60 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         try:
             self.electorate_layer = QgsProject.instance().mapLayersByName(
                 'Electorates')[0]
-            try:
-                self.electorate_layer_labels = QgsProject.instance().mapLayersByName(
-                    'Electorate Names and Stats')[0]
-            except IndexError:
-                pass
+        except IndexError:
+            self.report_failure(self.tr(
+                'Cannot find "Electorates" layer - please open the redistricting project first'))
+            self.begin_action.setChecked(False)
+            return
+
+        try:
+            self.electorate_layer_labels = QgsProject.instance().mapLayersByName(
+                'Electorate Names and Stats')[0]
+        except IndexError:
+            pass
+
+        try:
             self.meshblock_layer = QgsProject.instance().mapLayersByName(
                 'Meshblocks')[0]
+        except IndexError:
+            self.report_failure(self.tr(
+                'Cannot find "Meshblocks" layer - please open the redistricting project first'))
+            self.begin_action.setChecked(False)
+            return
+
+        try:
             self.quota_layer = QgsProject.instance().mapLayersByName(
                 'quotas')[0]
+        except IndexError:
+            self.report_failure(self.tr(
+                'Cannot find "quotas" layer - please open the redistricting project first'))
+            self.begin_action.setChecked(False)
+            return
+
+        try:
             self.scenario_layer = QgsProject.instance().mapLayersByName(
                 'scenarios')[0]
+        except IndexError:
+            self.report_failure(self.tr(
+                'Cannot find "scenarios" layer - please open the redistricting project first'))
+            self.begin_action.setChecked(False)
+            return
+
+        try:
             self.meshblock_electorate_layer = QgsProject.instance().mapLayersByName(
                 'meshblock_electorates')[0]
+        except IndexError:
+            self.report_failure(self.tr(
+                'Cannot find "meshblock_electorates" layer - please open the redistricting project first'))
+            self.begin_action.setChecked(False)
+            return
+
+        try:
             self.user_log_layer = QgsProject.instance().mapLayersByName(
                 'user_log')[0]
         except IndexError:
-            self.report_failure(self.tr('Cannot find map layers - please open the redistricting project first'))
+            self.report_failure(self.tr(
+                'Cannot find "user_log" layer - please open the redistricting project first'))
             self.begin_action.setChecked(False)
             return
 
@@ -510,9 +592,12 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.context = LinzRedistrictingContext(scenario_registry=self.scenario_registry)
         self.context.task = QgsSettings().value('redistricting/last_task', self.TASK_GN)
 
-        if not self.scenario_registry.scenario_exists(QgsSettings().value('redistricting/last_scenario', 1, int)):
+        last_scenario = QgsSettings().value('redistricting/last_scenario', 1,
+                                            int)
+        if not self.scenario_registry.scenario_exists(last_scenario):
             # uh oh - scenario doesn't exist anymore!
-            QMessageBox.critical(self.iface.mainWindow(), 'Missing Scenario', 'The previously used scenario ({}) no longer exists! Please rebuild the database from another scenario.'.format(QgsSettings().value('redistricting/last_scenario', 1, int)))
+            QMessageBox.critical(self.iface.mainWindow(), 'Missing Scenario',
+                                 f'The previously used scenario ({last_scenario}) no longer exists! Please rebuild the database from another scenario.')
             self.context.scenario = 1
         else:
             self.context.scenario = QgsSettings().value('redistricting/last_scenario', 1, int)
@@ -548,6 +633,8 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.meshblock_layer.beforeRollBack.connect(
             self.electorate_edit_queue.rollback)
 
+    # pylint: enable=too-many-branches,too-many-return-statements
+
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
@@ -562,6 +649,15 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         self.redistricting_menu.deleteLater()
         if self.tool is not None:
             self.tool.deleteLater()
+        if self.toggle_simplified_mode_action and not sip.isdeleted(self.toggle_simplified_mode_action):
+            self.toggle_simplified_mode_action.deleteLater()
+            self.toggle_simplified_mode_action = None
+        if self._enter_simplified_action and not sip.isdeleted(self._enter_simplified_action):
+            self._enter_simplified_action.deleteLater()
+            self._enter_simplified_action = None
+        if self.simplified_toolbar and not sip.isdeleted(self.simplified_toolbar):
+            self.simplified_toolbar.deleteLater()
+            self.simplified_toolbar = None
 
     def toggle_redistrict_actions(self):
         """
@@ -952,8 +1048,7 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
                     counter += 1
                     new_name = theme_name + ' ' + str(counter)
                     break
-            if not clash:
-                return new_name
+        return new_name
 
     def switch_theme(self, new_theme: str, open_new_map: bool):
         """
@@ -1004,6 +1099,9 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         if description is None:
             description = self.tr('Preparing switch...')
 
+        for canvas in self.iface.mapCanvases():
+            canvas.freeze(True)
+
         progress_dialog = BlockingDialog(title, description)
         progress_dialog.force_show_and_paint()
 
@@ -1028,6 +1126,8 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
             Reenables the disabled menu actions
             """
             self.enable_task_switches(True)
+            for canvas in self.iface.mapCanvases():
+                canvas.freeze(False)
 
         self.staged_task.taskCompleted.connect(
             partial(self.report_success, self.tr('Successfully switched to “{}”').format(scenario_name)))
@@ -1115,14 +1215,18 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
 
         QgsSettings().setValue('redistricting/last_import_path', source)
 
-        foreign_scenario_layer = QgsVectorLayer('{}|layername=scenarios'.format(source), 'foreign_scenarios')
+        foreign_scenario_layer = QgsVectorLayer(f'{source}|layername=scenarios', 'foreign_scenarios')
         if not foreign_scenario_layer.isValid():
+            # pylint: disable=consider-using-f-string
             self.report_failure(self.tr('Could not import scenarios from “{}”').format(source))
+            # pylint: enable=consider-using-f-string
             return
-        meshblock_electorates_uri = '{}|layername=meshblock_electorates'.format(source)
+        meshblock_electorates_uri = f'{source}|layername=meshblock_electorates'
         foreign_meshblock_electorates_layer = QgsVectorLayer(meshblock_electorates_uri, 'foreign_meshblock_electorates')
         if not foreign_meshblock_electorates_layer.isValid():
+            # pylint: disable=consider-using-f-string
             self.report_failure(self.tr('Could not import scenarios from “{}”').format(source))
+            # pylint: enable=consider-using-f-string
             return
 
         source_registry = ScenarioRegistry(source_layer=foreign_scenario_layer,
@@ -1160,6 +1264,120 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
             self.report_success(
                 self.tr('Successfully imported “{}” to “{}”').format(source_scenario_name, new_scenario_name))
 
+    def compare_scenarios(self):
+        """
+        Allows user to compare two scenarios
+        """
+        dlg = ScenarioComparisonDialog(scenario_registry=self.scenario_registry,
+                                       parent=self.iface.mainWindow())
+        if dlg.exec_():
+            base_scenario = dlg.selected_base_scenario()
+            secondary_scenario = dlg.selected_secondary_scenario()
+
+            QgsSettings().setValue('redistricting/last_base_scenario', base_scenario)
+            QgsSettings().setValue('redistricting/last_secondary_scenario', secondary_scenario)
+
+            self.compare_task = CompareScenariosTask(
+                task_name='Compare scenarios',
+                scenario_registry=self.scenario_registry,
+                meshblock_layer=self.meshblock_layer,
+                meshblock_number_field_name=self.MESHBLOCK_NUMBER_FIELD,
+                task=self.context.task,
+                base_scenario_id=base_scenario,
+                secondary_scenario_id=secondary_scenario
+            )
+            self.compare_task.map_extent = QgsReferencedRectangle(
+                self.iface.mapCanvas().extent(),
+                self.iface.mapCanvas().mapSettings().destinationCrs())
+            self.compare_task.taskCompleted.connect(
+                partial(self._comparison_finished, self.compare_task))
+            self.compare_task.error_occurred.connect(
+                self.report_failure)
+            self.compare_task.info_message.connect(
+                self.report_info)
+            # self.compare_task.taskTerminated.connect(
+            #    partial(self.report_failure, self.tr('Error while comparing scenaris')))
+
+            QgsApplication.taskManager().addTask(self.compare_task)
+        dlg.deleteLater()
+
+    def _comparison_finished(self, task: CompareScenariosTask):
+        """
+        Called when the scenario comparison task finishes
+        """
+        if task != self.compare_task:
+            return
+
+        changed_mb_layer = task.changed_meshblocks_layer
+        changed_mb_layer.moveToThread(QThread.currentThread())
+        QgsProject.instance().addMapLayer(changed_mb_layer)
+
+        changed_areas_layer = task.changed_areas_layer
+        changed_areas_layer.moveToThread(QThread.currentThread())
+        QgsProject.instance().addMapLayer(changed_areas_layer)
+
+        original_layer_order = QgsProject.instance().layerTreeRoot().customLayerOrder()
+        new_layer_order = [changed_areas_layer, changed_mb_layer] + [layer for layer in original_layer_order if
+                                                                     layer not in (
+                                                                     changed_mb_layer, changed_areas_layer)]
+        QgsProject.instance().layerTreeRoot().setCustomLayerOrder(new_layer_order)
+
+        concordance = task.concordance
+        request = BoundaryRequest(concordance, area=task.associated_task)
+        connector = get_api_connector()
+        res = self.api_request_queue.append_request(connector, request, blocking=True)
+        request_id = res['content']
+        self.outstanding_compare_results[request_id] = {
+            'changed_mb_layer': changed_mb_layer,
+            'changed_areas_layer': changed_areas_layer,
+            'dummy_electorates': task.dummy_electorates,
+            'task': task.associated_task
+        }
+        self.compare_task = None
+
+    # pylint: disable=too-many-locals
+    def _finished_comparison_population_request(self, properties, result):
+        """
+        Called when the population request for a scenario comparison finishes
+        """
+        dummy_electorates = properties['dummy_electorates']
+        changed_areas_layer = properties['changed_areas_layer']
+        if changed_areas_layer is None or sip.isdeleted(changed_areas_layer):
+            return
+
+        dummy_electorate_field_index = changed_areas_layer.fields().lookupField(
+            'dummy_electorate_id')
+        pop_field_index = changed_areas_layer.fields().lookupField(
+            'current_population')
+        var1_field_index = changed_areas_layer.fields().lookupField(
+            'variance_year_1')
+        var2_field_index = changed_areas_layer.fields().lookupField(
+            'variance_year_2')
+
+        electorate_attributes = {}
+        for item in result['populationTable']:
+            electorate = item['electorate']
+            electorate_id = int(electorate[1:])
+            if electorate_id not in dummy_electorates:
+                continue
+
+            dummy_electorate_id = properties['task'] + ('00' + str(electorate_id))[-2:]
+            electorate_attributes[dummy_electorate_id] = {
+                pop_field_index: item['currentPopulation'],
+                var1_field_index: item['varianceYear1'],
+                var2_field_index: item['varianceYear2']
+            }
+
+        changed_attribute_values = {}
+        for feature in changed_areas_layer.getFeatures():
+            electorate_id = feature[dummy_electorate_field_index]
+            if electorate_id in electorate_attributes:
+                changed_attribute_values[feature.id()] = electorate_attributes[electorate_id]
+
+        changed_areas_layer.dataProvider().changeAttributeValues(changed_attribute_values)
+        self.report_success(self.tr('Population counts for comparison stored'))
+        # pylint: enable=too-many-locals
+
     def update_dock_title(self):
         """
         Update dock title
@@ -1172,6 +1390,13 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         """
         self.iface.messageBar().pushMessage(
             message, level=Qgis.Success)
+
+    def report_info(self, message: str):
+        """
+        Reports an info message
+        """
+        self.iface.messageBar().pushMessage(
+            message, level=Qgis.Info)
 
     def report_failure(self, message: str):
         """
@@ -1621,8 +1846,9 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         settings = QgsSettings()
         last_path = settings.value('redistricting/last_mb_import_path', QDir.homePath())
 
-        source = QFileDialog.getExistingDirectory(self.iface.mainWindow(),  # pylint: disable=unused-variable
-                                                  self.tr('Load New Meshblocks'), last_path)
+        source, _ = QFileDialog.getOpenFileName(self.iface.mainWindow(),  # pylint: disable=unused-variable
+                                                self.tr('Load New Meshblocks'), last_path,
+                                                'GeoPackage Files (*.gpkg)')
         if not source:
             return
 
@@ -1667,22 +1893,22 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
             assert False, 'not supported yet'
             # meshblock_number_field = 'MB2018_V1_00'
         else:
-            meshblock_layer = 'MB2013_HD_Full'
-            meshblock_number_field = 'MB2013'
+            meshblock_layer = 'meshblock_2024'
+            meshblock_number_field = 'MB2024_V1_00'
 
-        source_layer = QgsVectorLayer('{}|layername={}'.format(source, meshblock_layer), 'meshblock_source')
+        source_layer = QgsVectorLayer(f'{source}|layername={meshblock_layer}', 'meshblock_source')
         assert source_layer.isValid()
         non_digitized_layer = QgsVectorLayer(
-            '{}|layername={}'.format(prev_meshblock_layer_path, 'non_digitized_meshblocks'), 'non_digitized')
+            f'{prev_meshblock_layer_path}|layername=non_digitized_meshblocks', 'non_digitized')
         non_digitized = [f['meshblock_no'] for f in non_digitized_layer.getFeatures()]
         assert non_digitized
 
-        offshore_layer = QgsVectorLayer('{}|layername={}'.format(prev_meshblock_layer_path, 'offshore_meshblocks'),
+        offshore_layer = QgsVectorLayer(f'{prev_meshblock_layer_path}|layername=offshore_meshblocks',
                                         'offshore_meshblocks')
         offshore = [f['meshblock_no'] for f in offshore_layer.getFeatures()]
         assert offshore
 
-        island_layer = QgsVectorLayer('{}|layername={}'.format(prev_meshblock_layer_path, 'meshblock_island'),
+        island_layer = QgsVectorLayer(f'{prev_meshblock_layer_path}|layername=meshblock_island',
                                       'meshblock_island')
         island = {f['meshblock_no']: f['ns_island'] for f in island_layer.getFeatures()}
         assert island
@@ -1690,25 +1916,57 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         dest_layer = QgsVectorLayer(prev_meshblock_layer_source, 'meshblock_dest')
         assert dest_layer.isValid()
 
-        dest_layer.dataProvider().truncate()
         meshblocks = []
         for f in source_layer.getFeatures():
+            out_feature = QgsFeature(dest_layer.fields())
+            out_feature.setGeometry(f.geometry())
             mb_id = str(int(f[meshblock_number_field]))
 
             if mb_id in non_digitized:
-                print('skipping non-digitized meshblock: {}'.format(mb_id))
+                print(f'skipping non-digitized meshblock: {mb_id}')
                 continue
 
-            is_offshore = mb_id in offshore
-            nth_sth = island[mb_id]
+            out_feature['meshblock_no'] = mb_id  # string
+            out_feature['meshblock_no_int'] = int(f[meshblock_number_field])  # int
 
-            attrs = f.attributes()
             # offline populations not known at this stage!
-            attrs.extend([0, 0, 0, is_offshore, nth_sth, NULL])
-            f.setAttributes(attrs)
-            meshblocks.append(f)
+            out_feature['offline_pop_gn'] = 0 # int
+            out_feature['offline_pop_gs'] = 0  # int
+            out_feature['offline_pop_m'] = 0  # int
 
-        assert dest_layer.dataProvider().addFeatures(meshblocks)
+            is_offshore = mb_id in offshore
+            try:
+                nth_sth = island[mb_id]
+            except KeyError:
+                QMessageBox.critical(self.iface.mainWindow(), self.tr('Load New Meshblocks'),
+                                    self.tr(
+                                        'Meshblock {} has no entry in old meshblock_island table. Please add and retry.').format(mb_id))
+                return
+
+            out_feature['offshore'] = is_offshore  # int
+            out_feature['ns_island'] = nth_sth  # int
+            out_feature['staged_electorate'] = NULL  # int
+
+            out_feature['LANDWATER'] = f['LANDWATER'] # string
+            out_feature['GED_Prop_2020'] = NULL  # string
+            out_feature['MED_Prop_2020'] = NULL  # string
+            out_feature['GED_code'] = NULL  # string
+            out_feature['GED_label'] = NULL  # string
+            out_feature['MED_code'] = NULL  # string
+            out_feature['MED_label'] = NULL  # string
+
+            meshblocks.append(out_feature)
+
+        dest_layer.dataProvider().truncate()
+        res, _ = dest_layer.dataProvider().addFeatures(meshblocks, QgsFeatureSink.FastInsert)
+        if not res:
+            errors = dest_layer.dataProvider().errors()
+            QMessageBox.critical(self.iface.mainWindow(), self.tr('Load New Meshblocks'),
+                                 self.tr(
+                                     'Encountered {} errors. First error was "{}".').format(
+                                     len(errors), errors[0]))
+            return
+
         QMessageBox.warning(self.iface.mainWindow(), self.tr('Load New Meshblocks'),
                             self.tr(
                                 'Please run a full scenario rebuild after re-loading the plugin'))
@@ -1738,11 +1996,18 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
         connector = get_api_connector()
         self.api_request_queue.append_request(connector, request)
 
-    def api_request_finished(self, result: dict):
+    def api_request_finished(self, request_id: str, result: dict):
         """
         Triggered when an API request is finalized
         """
         QgsMessageLog.logMessage('Response ' + str(result), "REDISTRICT")
+        if request_id in self.outstanding_compare_results:
+            self._finished_comparison_population_request(
+                self.outstanding_compare_results[request_id],
+                result
+            )
+            del self.outstanding_compare_results[request_id]
+            return
 
         district_registry = self.get_district_registry()
         for electorate_table in result['populationTable']:
@@ -1808,6 +2073,192 @@ class LinzRedistrict(QObject):  # pylint: disable=too-many-public-methods
                                                      })
         self.refresh_dock_stats()
         self.refresh_canvases()
+
+    def _toggle_layer_tree_toolbar(self, visible: bool):
+        """
+        Toggles whether the layer tree toolbar should be visible
+        """
+        layer_tree_dock = self.iface.mainWindow().findChildren(
+            QDockWidget,
+            'Layers')
+        if layer_tree_dock:
+            layer_tree_dock_toolbar = \
+                layer_tree_dock[0].findChildren(QToolBar)[0]
+            layer_tree_dock_toolbar.setVisible(visible)
+
+    def _toggle_simplified(self):  # pylint: disable=too-many-branches
+        """
+        Toggles the simplified redistricting interface
+        """
+        if self._is_simplified:
+            self.iface.mainWindow().menuBar().show()
+            if self.simplified_toolbar and not sip.isdeleted(
+                    self.simplified_toolbar):
+                self.simplified_toolbar.deleteLater()
+                self.simplified_toolbar = None
+            for toolbar in self._previously_visible_toolbars:
+                toolbar.show()
+            for dock in self._previously_visible_docks:
+                dock.show()
+            for widget in self._previously_visible_statusbar_widgets:
+                widget.show()
+
+            if self._exit_simplified_action and not sip.isdeleted(
+                    self._exit_simplified_action):
+                self._exit_simplified_action.deleteLater()
+                self._exit_simplified_action = None
+
+            self._toggle_layer_tree_toolbar(True)
+
+            if self.redistricting_toolbar:
+                self.redistricting_toolbar.setIconSize(
+                    self.iface.iconSize()
+                )
+                self.redistricting_toolbar.adjustSize()
+            self._is_simplified = False
+        else:
+            self._previously_visible_toolbars = []
+            for toolbar in self.iface.mainWindow().findChildren(QToolBar,
+                                                                options=Qt.FindDirectChildrenOnly):
+                if toolbar in (self.redistricting_toolbar,):
+                    continue
+
+                if toolbar.isVisible():
+                    self._previously_visible_toolbars.append(toolbar)
+                    toolbar.hide()
+
+            self._toggle_layer_tree_toolbar(False)
+
+            self._previously_visible_docks = []
+            for dock in self.iface.mainWindow().findChildren(QDockWidget):
+                if dock.objectName() in ('Layers',
+                                         'IdentifyResultsDock',
+                                         'SelectedPopulationDockWidget',
+                                         'LinzRedistrictingDock',
+                                         'LinzValidationResultsDock'):
+                    continue
+
+                # maybe a secondary canvas
+                if dock.findChildren(QgsMapCanvas):
+                    continue
+
+                if dock.isVisible():
+                    self._previously_visible_docks.append(dock)
+                    dock.hide()
+
+            self._previously_visible_statusbar_widgets = []
+            for widget in self.iface.statusBarIface().children():
+                if not isinstance(widget, QWidget):
+                    continue
+
+                if widget.objectName() in ('mProgressBar',
+                                          'mMessageLogViewerButton'):
+                    continue
+
+                # ensure task manager stays visible
+                if (isinstance(widget, (QLineEdit, QToolButton)) and
+                        widget.objectName() not in ('mOntheFlyProjectionStatusButton', )):
+                    continue
+
+                if widget.isVisible():
+                    self._previously_visible_statusbar_widgets.append(widget)
+                    widget.hide()
+
+            self.iface.mainWindow().menuBar().hide()
+
+            self._exit_simplified_action = QAction(GuiUtils.get_icon(
+                'full_interface.svg'), self.tr('Exit Simplified Mode'),
+                self.simplified_toolbar)
+            self._exit_simplified_action.triggered.connect(
+                self._toggle_simplified)
+
+            self.simplified_toolbar = QToolBar()
+            self.simplified_toolbar.setIconSize(
+                self.iface.iconSize() * self.SIMPLIFIED_MODE_TOOLBAR_SCALE
+            )
+            if self.redistricting_toolbar:
+                self.redistricting_toolbar.setIconSize(
+                    self.iface.iconSize() * self.SIMPLIFIED_MODE_TOOLBAR_SCALE
+                )
+                self.redistricting_toolbar.adjustSize()
+
+            self.simplified_toolbar.setObjectName('Simplified Redistricting')
+
+            self.simplified_toolbar.addAction(
+                self.iface.actionSaveProject()
+            )
+            self.simplified_toolbar.addSeparator()
+            self.simplified_toolbar.addAction(
+                self.iface.actionPan()
+            )
+            self.simplified_toolbar.addAction(
+                self.iface.actionZoomToSelected()
+            )
+            self.simplified_toolbar.addAction(
+                self.iface.actionZoomFullExtent()
+            )
+            self.simplified_toolbar.addSeparator()
+            self.simplified_toolbar.addAction(
+                self.iface.actionIdentify()
+            )
+
+            select_button = QToolButton(self.simplified_toolbar)
+            select_button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+            select_button.addAction(self.iface.actionSelect())
+            select_button.addAction(self.iface.actionSelectPolygon())
+            select_button.addAction(self.iface.actionSelectFreehand())
+            select_button.addAction(self.iface.actionSelectRadius())
+            for a in ('mActionSelectByForm',
+                      'mActionSelectByExpression',
+                      'mActionDeselectAll',
+                      'mProcessingAlg_native:selectbylocation'):
+                matches = self.iface.mainWindow().findChildren(QAction,
+                                                         a)
+                if not matches:
+                    continue
+                select_button.addAction(matches[0])
+
+            select_button.setDefaultAction(self.iface.actionSelect())
+
+            def _select_button_triggered(action):
+                select_button.setDefaultAction(action)
+
+            select_button.triggered.connect(_select_button_triggered)
+            self.simplified_toolbar.addWidget(select_button)
+
+            self.simplified_toolbar.addAction(
+                self.iface.actionMeasure()
+            )
+
+            self.simplified_toolbar.addSeparator()
+
+            themes_tool_button = QToolButton()
+            themes_tool_button.setAutoRaise(True)
+            themes_tool_button.setToolTip(self.tr('Map Themes'))
+            themes_tool_button.setIcon(GuiUtils.get_icon('themes.svg'))
+            themes_tool_button.setPopupMode(QToolButton.InstantPopup)
+            themes_tool_button.setMenu(self.theme_menu)
+            self.simplified_toolbar.addWidget(themes_tool_button)
+
+            settings_action = QToolButton(self.simplified_toolbar)
+            settings_action.setPopupMode(
+                QToolButton.ToolButtonPopupMode.InstantPopup)
+            settings_action.setIcon(GuiUtils.get_icon(
+            'open_settings.svg'))
+            self.simplified_toolbar.addWidget(settings_action)
+            settings_menu = QMenu(settings_action)
+            settings_menu.addAction(self.begin_action)
+            settings_menu.addMenu(self.switch_menu)
+            settings_menu.addSeparator()
+            settings_menu.addAction(self._exit_simplified_action)
+
+            settings_action.setMenu(settings_menu)
+
+            self.iface.addToolBar(self.simplified_toolbar)
+            GuiUtils.float_toolbar_over_widget(self.simplified_toolbar,
+                                               self.iface.mapCanvas(),
+                                               offset_y=-30)
+            self._is_simplified = True
 
     def show_help(self):
         """

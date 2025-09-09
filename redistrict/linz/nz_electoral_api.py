@@ -1,18 +1,6 @@
-# coding=utf-8
-"""Redistricting NZ API.
-
-.. note:: This program is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published by
-     the Free Software Foundation; either version 2 of the License, or
-     (at your option) any later version.
-
 """
-
-__author__ = '(C) 2018 by Alessandro Pasotti'
-__date__ = '05/05/2018'
-__copyright__ = 'Copyright 2018, North Road'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+Redistricting NZ API.
+"""
 
 import json
 import os
@@ -23,17 +11,18 @@ import time
 import uuid
 from io import BytesIO
 
-from redistrict.linz.networkaccessmanager import NetworkAccessManager, RequestsException
 from qgis.PyQt.QtCore import QObject, pyqtSignal
-from qgis.core import (QgsMessageLog,
-                       QgsNetworkAccessManager,
-                       QgsSettings)
+from qgis.core import (
+    QgsMessageLog,
+    QgsNetworkAccessManager,
+    QgsSettings
+)
 
-# API Version
-GMS_VERSION = "StatsNZ_MB_V1_01_20190808_1410"
+from redistrict.linz.networkaccessmanager import NetworkAccessManager, \
+    RequestsException
 
 
-class ConcordanceItem():
+class ConcordanceItem:
     """ConcordanceItem struct
     """
 
@@ -97,7 +86,7 @@ class BoundaryRequest():
     """BoundaryRequest struct
     """
 
-    def __init__(self, concordance: List[ConcordanceItem], area, gmsVersion: str = GMS_VERSION):
+    def __init__(self, concordance: List[ConcordanceItem], area, gmsVersion: Optional[str] = None):
         """Initialise a BoundaryRequest
 
         :param concordance: one or more ConcordanceItem
@@ -108,7 +97,8 @@ class BoundaryRequest():
         :param gmsVersion: str, optional
         """
         self.type = area
-        self.gmsVersion = gmsVersion
+        self.gmsVersion = gmsVersion or QgsSettings().value('redistrict/gms_version', 'GMS_TEST_VERSION', str,
+                                QgsSettings.Plugins)
         self.concordance = concordance
         # exclude full meshblock listing from results
         self.meshblocks = False
@@ -147,7 +137,7 @@ class NzElectoralApi(QObject):
             result = self.status(blocking=True)
             return result['status_code'] == 200
         except Exception as e:  # pylint: disable=W0703
-            QgsMessageLog.logMessage("%s" % e, "REDISTRICT")
+            QgsMessageLog.logMessage(str(e), "REDISTRICT")
             return False
 
     def set_qs(self, qs: str):
@@ -369,9 +359,10 @@ class MockStatsApi(NzElectoralApi):
         self.httpd = http.server.HTTPServer(('localhost', 0), Handler)
         self.port = self.httpd.server_address[1]
         self.httpd_thread = threading.Thread(target=self.httpd.serve_forever)
-        self.httpd_thread.setDaemon(True)
+        self.httpd_thread.daemon = True
         self.httpd_thread.start()
-        super().__init__(base_url='http://localhost:%s' % self.port, authcfg=None, debug=True)
+        super().__init__(base_url=f'http://localhost:{self.port}',
+                         authcfg=None, debug=True)
 
     def check(self) -> bool:
         return True
@@ -394,7 +385,8 @@ class MockStatsApi(NzElectoralApi):
         request_id = str(uuid.uuid1())
         MockStatsApi.boundary_changes_requests[request_id] = {
             "populationTable": list(meshblocks_to_electorate.values()),
-            "gmsVersion": GMS_VERSION
+            "gmsVersion": QgsSettings().value('redistrict/gms_version', 'GMS_TEST_VERSION', str,
+                                QgsSettings.Plugins)
         }
         return request_id
 

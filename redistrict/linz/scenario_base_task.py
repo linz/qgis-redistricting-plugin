@@ -1,23 +1,26 @@
-# -*- coding: utf-8 -*-
-"""LINZ Redistricting Plugin - Scenario base task
-
-.. note:: This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
 """
+LINZ Redistricting Plugin - Scenario base task
+"""
+import gc
 
-__author__ = '(C) 2018 by Nyall Dawson'
-__date__ = '20/04/2018'
-__copyright__ = 'Copyright 2018, LINZ'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+from typing import (
+    Optional,
+    List
+)
+from qgis.PyQt.QtCore import (
+    QObject,
+    QRunnable,
+    QThreadPool,
+    pyqtSlot,
+    pyqtSignal,
+    QEventLoop
+)
 
-from typing import Optional
 from qgis.core import (QgsTask,
                        QgsFeatureRequest,
                        QgsVectorLayer,
                        QgsGeometry)
+from redistrict.core import CoreUtils
 from redistrict.linz.scenario_registry import ScenarioRegistry
 
 
@@ -25,6 +28,44 @@ class CanceledException(Exception):
     """
     Triggered when task is canceled
     """
+
+
+class MergedGeometryWorkerSignals(QObject):
+    """
+    QObject for safe cross-thread communication
+    for MergedGeometryWorker
+    """
+    finished = pyqtSignal(int, QgsGeometry)
+
+
+class MergedGeometryWorker(QRunnable):
+    """
+    Worker thread which performs geometry merging
+    """
+
+    def __init__(self, worker_id: int, geometries: List[QgsGeometry]):
+        super().__init__()
+        self.worker_id = worker_id
+        self.geometries = geometries
+        self.output: Optional[QgsGeometry] = None
+        self.signals = MergedGeometryWorkerSignals()
+
+    @pyqtSlot()
+    def run(self):
+        """
+        Performs the expensive geometry merging.
+
+        We can do this in a Python thread with great performance benefits,
+        because the vast bulk of this task is performed in c++...
+        """
+        self.output = CoreUtils.union_geometries(
+            self.geometries
+        )
+        self.output.makeValid()
+        if self.output.isEmpty():
+            self.output = QgsGeometry()
+        self.signals.finished.emit(
+            self.worker_id, self.output)
 
 
 class ScenarioBaseTask(QgsTask):
@@ -61,8 +102,10 @@ class ScenarioBaseTask(QgsTask):
         """
         super().__init__(task_name)
 
+        gc.disable()
         self.scenario = scenario
         self.electorate_layer = electorate_layer
+        self.electorate_geometries = {}
         self.task = task
 
         self.type_idx = electorate_layer.fields().lookupField('type')
@@ -146,14 +189,29 @@ class ScenarioBaseTask(QgsTask):
                                                           self.STATS_NZ_POP: stats_nz_pop}
 
         self.setDependentLayers([electorate_layer])
+        gc.enable()
 
-    def calculate_new_electorates(self):
+    def store_electorate_geometry(self,
+                                  electorate_id: int,
+                                  geometry: QgsGeometry):
+        """
+        Stores the result of MergedGeometryWorker
+        """
+        self.electorate_geometries[electorate_id] = QgsGeometry(geometry)
+
+    def calculate_new_electorates(self):  # pylint: disable=too-many-locals
         """
         Calculates the new electorate geometry and populations for the associated scenario
         """
-        electorate_geometries = {}
+        gc.disable()
+        self.electorate_geometries = {}
         electorate_attributes = {}
         i = 0
+
+        merging_thread_pool = QThreadPool()
+
+        workers = []
+        remaining_worker_ids = set()
         for electorate_id, params in self.electorates_to_process.items():
             if self.isCanceled():
                 raise CanceledException
@@ -168,13 +226,13 @@ class ScenarioBaseTask(QgsTask):
 
             if electorate_type == 'M':
                 estimated_pop = sum(
-                    [mbf[self.mb_off_pop_m_idx] for mbf in matching_meshblocks if mbf[self.mb_off_pop_m_idx]])
+                    mbf[self.mb_off_pop_m_idx] for mbf in matching_meshblocks if mbf[self.mb_off_pop_m_idx])
             elif electorate_type == 'GN':
                 estimated_pop = sum(
-                    [mbf[self.mb_off_pop_ni_idx] for mbf in matching_meshblocks if mbf[self.mb_off_pop_ni_idx]])
+                    mbf[self.mb_off_pop_ni_idx] for mbf in matching_meshblocks if mbf[self.mb_off_pop_ni_idx])
             else:
                 estimated_pop = sum(
-                    [mbf[self.mb_off_pop_si_idx] for mbf in matching_meshblocks if mbf[self.mb_off_pop_si_idx]])
+                    mbf[self.mb_off_pop_si_idx] for mbf in matching_meshblocks if mbf[self.mb_off_pop_si_idx])
 
             electorate_attributes[electorate_feature_id] = {self.ESTIMATED_POP: estimated_pop,
                                                             self.ELECTORATE_ID: electorate_id,
@@ -189,9 +247,26 @@ class ScenarioBaseTask(QgsTask):
                                                             self.STATS_NZ_POP: params[self.STATS_NZ_POP]}
 
             meshblock_parts = [m.geometry() for m in matching_meshblocks]
-            electorate_geometry = QgsGeometry.unaryUnion(meshblock_parts)
-            electorate_geometry = electorate_geometry.makeValid()
-            electorate_geometries[electorate_feature_id] = electorate_geometry
+
+            remaining_worker_ids.add(electorate_feature_id)
+            merging_worker = MergedGeometryWorker(electorate_feature_id, meshblock_parts)
+            workers.append(merging_worker)
+            merging_worker.signals.finished.connect(self.store_electorate_geometry)
+            merging_thread_pool.start(merging_worker)
+
             i += 1
 
-        return electorate_geometries, electorate_attributes
+        merging_thread_pool.waitForDone()
+        loop = QEventLoop()
+
+        while True:
+            if not remaining_worker_ids:
+                break
+
+            loop.processEvents()
+            remaining_worker_ids = set(r for r in remaining_worker_ids
+                                       if r not in self.electorate_geometries)
+        loop.quit()
+
+        gc.enable()
+        return self.electorate_geometries, electorate_attributes
